@@ -33,6 +33,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F60718293A4B5C /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		5CE7E1A4305D2BBB007DC982 /* Tangent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tangent.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CE7E1B4305D2BBD007DC982 /* TangentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TangentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CE7E1BE305D2BBD007DC982 /* TangentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TangentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -90,6 +91,7 @@
 		5CE7E19B305D2BBB007DC982 = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F60718293A4B5C /* Debug.xcconfig */,
 				5CE7E1A6305D2BBB007DC982 /* Tangent */,
 				5CE7E1B7305D2BBD007DC982 /* TangentTests */,
 				5CE7E1C1305D2BBD007DC982 /* TangentUITests */,
@@ -297,6 +299,7 @@
 /* Begin XCBuildConfiguration section */
 		5CE7E1C6305D2BBD007DC982 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D4E5F60718293A4B5C /* Debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -423,7 +426,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Tangent/Preview Content\"";
-				DEVELOPMENT_TEAM = DYW84KXT27;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -439,7 +441,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.magnusross.tangent;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(TANGENT_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -489,7 +491,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Personal.TangentTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(TANGENT_BUNDLE_IDENTIFIER).tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -523,7 +525,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Personal.TangentUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(TANGENT_BUNDLE_IDENTIFIER).uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;

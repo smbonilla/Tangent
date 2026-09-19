@@ -1,0 +1,7 @@
+// Shared Debug defaults. Personal signing overrides live in Local.xcconfig.
+TANGENT_DEVELOPMENT_TEAM =
+TANGENT_BUNDLE_IDENTIFIER = com.example.tangent.debug
+
+#include? "Local.xcconfig"
+
+DEVELOPMENT_TEAM = $(TANGENT_DEVELOPMENT_TEAM)
