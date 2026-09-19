@@ -1,0 +1,76 @@
+[
+  {
+    "day": "2026-09-07",
+    "transcript_path": "transcripts/2026-09-07.txt",
+    "reference_summary": "I spent forty focused minutes sketching my neighbourhood zine and kept going by putting my phone away.",
+    "required_concepts": [
+      ["sketch", "drawing"],
+      ["zine"]
+    ],
+    "forbidden_claims": [
+      "better than before"
+    ]
+  },
+  {
+    "day": "2026-09-08",
+    "transcript_path": "transcripts/2026-09-08.txt",
+    "reference_summary": "I let meetings and small jobs crowd out drawing, though I briefly practised a guitar chord more cleanly than yesterday.",
+    "required_concepts": [
+      ["meeting", "task", "job"],
+      ["guitar", "chord"]
+    ]
+  },
+  {
+    "day": "2026-09-09",
+    "transcript_path": "transcripts/2026-09-09.txt",
+    "reference_summary": "Showing Sam my zine sketches helped me stop polishing too early and made the project feel more possible.",
+    "required_concepts": [
+      ["Sam", "friend"],
+      ["zine", "sketch"],
+      ["polish", "possible", "smaller"]
+    ]
+  },
+  {
+    "day": "2026-09-10",
+    "transcript_path": "transcripts/2026-09-10.txt",
+    "reference_summary": "I got distracted by planning instead of drawing, then reduced tomorrow's work to finishing the rough layout.",
+    "required_concepts": [
+      ["distract", "scatter", "planning", "task"],
+      ["layout", "tomorrow", "next step"]
+    ]
+  },
+  {
+    "day": "2026-09-11",
+    "transcript_path": "transcripts/2026-09-11.txt",
+    "reference_summary": "I blocked out an uninterrupted hour, finished the rough layout for all eight pages, and felt relieved and proud.",
+    "required_concepts": [
+      ["layout"],
+      ["finish", "eight", "all"],
+      ["proud", "relieved"]
+    ]
+  },
+  {
+    "day": "2026-09-12",
+    "transcript_path": "transcripts/2026-09-12.txt",
+    "reference_summary": "I enjoyed an unhurried day cooking and playing cards with friends without feeling guilty about taking a break.",
+    "required_concepts": [
+      ["friend", "Priya"],
+      ["rest", "break", "guilt", "unhurried", "nice"]
+    ],
+    "forbidden_claims": [
+      "made time for creative work",
+      "worked on the zine",
+      "practised guitar"
+    ]
+  },
+  {
+    "day": "2026-09-13",
+    "transcript_path": "transcripts/2026-09-13.txt",
+    "reference_summary": "I used Sam's feedback to combine two pages, improve the zine, and found a concrete comment easier to act on than a blank page.",
+    "required_concepts": [
+      ["feedback", "Sam", "comment"],
+      ["combine", "page", "train"],
+      ["easier", "start", "blank"]
+    ]
+  }
+]

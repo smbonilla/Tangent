@@ -9,3 +9,6 @@ xcuserdata/
 Tangent/Tangent-xcode16.xcodeproj/
 Tangent/Tangent-modern.xcodeproj/
 __pycache__/
+.pytest_cache/
+prompt-lab/.venv/
+prompt-lab/output/
