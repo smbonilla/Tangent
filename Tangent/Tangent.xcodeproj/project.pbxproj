@@ -1,0 +1,651 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5CE7E2B1305D2BBB007DC982 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE7E2A1305D2BBB007DC982 /* MLXLLM */; };
+		5CE7E2B2305D2BBB007DC982 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE7E2A2305D2BBB007DC982 /* MLXVLM */; };
+		5CE7E2B3305D2BBB007DC982 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE7E2A3305D2BBB007DC982 /* MLXLMCommon */; };
+		5CE7E2B4305D2BBB007DC982 /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE7E2A4305D2BBB007DC982 /* MLXHuggingFace */; };
+		5CE7E2D1305D2BBB007DC982 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE7E2C1305D2BBB007DC982 /* HuggingFace */; };
+		5CE7E2F1305D2BBB007DC982 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE7E2E1305D2BBB007DC982 /* Tokenizers */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5CE7E1B5305D2BBD007DC982 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5CE7E19C305D2BBB007DC982 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5CE7E1A3305D2BBB007DC982;
+			remoteInfo = Tangent;
+		};
+		5CE7E1BF305D2BBD007DC982 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5CE7E19C305D2BBB007DC982 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5CE7E1A3305D2BBB007DC982;
+			remoteInfo = Tangent;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		5CE7E1A4305D2BBB007DC982 /* Tangent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tangent.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5CE7E1B4305D2BBD007DC982 /* TangentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TangentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5CE7E1BE305D2BBD007DC982 /* TangentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TangentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		5CE7E1A6305D2BBB007DC982 /* Tangent */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tangent;
+			sourceTree = "<group>";
+		};
+		5CE7E1B7305D2BBD007DC982 /* TangentTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TangentTests;
+			sourceTree = "<group>";
+		};
+		5CE7E1C1305D2BBD007DC982 /* TangentUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TangentUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5CE7E1A1305D2BBB007DC982 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CE7E2B1305D2BBB007DC982 /* MLXLLM in Frameworks */,
+				5CE7E2B2305D2BBB007DC982 /* MLXVLM in Frameworks */,
+				5CE7E2B3305D2BBB007DC982 /* MLXLMCommon in Frameworks */,
+				5CE7E2B4305D2BBB007DC982 /* MLXHuggingFace in Frameworks */,
+				5CE7E2D1305D2BBB007DC982 /* HuggingFace in Frameworks */,
+				5CE7E2F1305D2BBB007DC982 /* Tokenizers in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5CE7E1B1305D2BBD007DC982 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5CE7E1BB305D2BBD007DC982 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5CE7E19B305D2BBB007DC982 = {
+			isa = PBXGroup;
+			children = (
+				5CE7E1A6305D2BBB007DC982 /* Tangent */,
+				5CE7E1B7305D2BBD007DC982 /* TangentTests */,
+				5CE7E1C1305D2BBD007DC982 /* TangentUITests */,
+				5CE7E1A5305D2BBB007DC982 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5CE7E1A5305D2BBB007DC982 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5CE7E1A4305D2BBB007DC982 /* Tangent.app */,
+				5CE7E1B4305D2BBD007DC982 /* TangentTests.xctest */,
+				5CE7E1BE305D2BBD007DC982 /* TangentUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5CE7E1A3305D2BBB007DC982 /* Tangent */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5CE7E1C8305D2BBD007DC982 /* Build configuration list for PBXNativeTarget "Tangent" */;
+			buildPhases = (
+				5CE7E1A0305D2BBB007DC982 /* Sources */,
+				5CE7E1A1305D2BBB007DC982 /* Frameworks */,
+				5CE7E1A2305D2BBB007DC982 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5CE7E1A6305D2BBB007DC982 /* Tangent */,
+			);
+			name = Tangent;
+			packageProductDependencies = (
+				5CE7E2A1305D2BBB007DC982 /* MLXLLM */,
+				5CE7E2A2305D2BBB007DC982 /* MLXVLM */,
+				5CE7E2A3305D2BBB007DC982 /* MLXLMCommon */,
+				5CE7E2A4305D2BBB007DC982 /* MLXHuggingFace */,
+				5CE7E2C1305D2BBB007DC982 /* HuggingFace */,
+				5CE7E2E1305D2BBB007DC982 /* Tokenizers */,
+			);
+			productName = Tangent;
+			productReference = 5CE7E1A4305D2BBB007DC982 /* Tangent.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5CE7E1B3305D2BBD007DC982 /* TangentTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5CE7E1CB305D2BBD007DC982 /* Build configuration list for PBXNativeTarget "TangentTests" */;
+			buildPhases = (
+				5CE7E1B0305D2BBD007DC982 /* Sources */,
+				5CE7E1B1305D2BBD007DC982 /* Frameworks */,
+				5CE7E1B2305D2BBD007DC982 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5CE7E1B6305D2BBD007DC982 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5CE7E1B7305D2BBD007DC982 /* TangentTests */,
+			);
+			name = TangentTests;
+			packageProductDependencies = (
+			);
+			productName = TangentTests;
+			productReference = 5CE7E1B4305D2BBD007DC982 /* TangentTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5CE7E1BD305D2BBD007DC982 /* TangentUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5CE7E1CE305D2BBD007DC982 /* Build configuration list for PBXNativeTarget "TangentUITests" */;
+			buildPhases = (
+				5CE7E1BA305D2BBD007DC982 /* Sources */,
+				5CE7E1BB305D2BBD007DC982 /* Frameworks */,
+				5CE7E1BC305D2BBD007DC982 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5CE7E1C0305D2BBD007DC982 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5CE7E1C1305D2BBD007DC982 /* TangentUITests */,
+			);
+			name = TangentUITests;
+			packageProductDependencies = (
+			);
+			productName = TangentUITests;
+			productReference = 5CE7E1BE305D2BBD007DC982 /* TangentUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5CE7E19C305D2BBB007DC982 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					5CE7E1A3305D2BBB007DC982 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					5CE7E1B3305D2BBD007DC982 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 5CE7E1A3305D2BBB007DC982;
+					};
+					5CE7E1BD305D2BBD007DC982 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 5CE7E1A3305D2BBB007DC982;
+					};
+				};
+			};
+			buildConfigurationList = 5CE7E19F305D2BBB007DC982 /* Build configuration list for PBXProject "Tangent" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5CE7E19B305D2BBB007DC982;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5CE7E2A0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				5CE7E2C0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "swift-huggingface" */,
+				5CE7E2E0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "swift-transformers" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5CE7E1A5305D2BBB007DC982 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5CE7E1A3305D2BBB007DC982 /* Tangent */,
+				5CE7E1B3305D2BBD007DC982 /* TangentTests */,
+				5CE7E1BD305D2BBD007DC982 /* TangentUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5CE7E1A2305D2BBB007DC982 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5CE7E1B2305D2BBD007DC982 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5CE7E1BC305D2BBD007DC982 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5CE7E1A0305D2BBB007DC982 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5CE7E1B0305D2BBD007DC982 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5CE7E1BA305D2BBD007DC982 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5CE7E1B6305D2BBD007DC982 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5CE7E1A3305D2BBB007DC982 /* Tangent */;
+			targetProxy = 5CE7E1B5305D2BBD007DC982 /* PBXContainerItemProxy */;
+		};
+		5CE7E1C0305D2BBD007DC982 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5CE7E1A3305D2BBB007DC982 /* Tangent */;
+			targetProxy = 5CE7E1BF305D2BBD007DC982 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5CE7E1C6305D2BBD007DC982 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Debug;
+		};
+		5CE7E1C7305D2BBD007DC982 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5CE7E1C9305D2BBD007DC982 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tangent.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Tangent/Preview Content\"";
+				DEVELOPMENT_TEAM = PU75NNGUW6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Tangent uses the microphone to record your voice diary entries. Recordings never leave your device.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Tangent transcribes your voice diary entries on your device. Nothing is sent anywhere.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Personal.Tangent;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5CE7E1CA305D2BBD007DC982 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Tangent.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Tangent/Preview Content\"";
+				DEVELOPMENT_TEAM = PU75NNGUW6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Tangent uses the microphone to record your voice diary entries. Recordings never leave your device.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Tangent transcribes your voice diary entries on your device. Nothing is sent anywhere.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Personal.Tangent;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5CE7E1CC305D2BBD007DC982 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Personal.TangentTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tangent.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tangent";
+			};
+			name = Debug;
+		};
+		5CE7E1CD305D2BBD007DC982 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Personal.TangentTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tangent.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tangent";
+			};
+			name = Release;
+		};
+		5CE7E1CF305D2BBD007DC982 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Personal.TangentUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Tangent;
+			};
+			name = Debug;
+		};
+		5CE7E1D0305D2BBD007DC982 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Personal.TangentUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Tangent;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5CE7E19F305D2BBB007DC982 /* Build configuration list for PBXProject "Tangent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5CE7E1C6305D2BBD007DC982 /* Debug */,
+				5CE7E1C7305D2BBD007DC982 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5CE7E1C8305D2BBD007DC982 /* Build configuration list for PBXNativeTarget "Tangent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5CE7E1C9305D2BBD007DC982 /* Debug */,
+				5CE7E1CA305D2BBD007DC982 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5CE7E1CB305D2BBD007DC982 /* Build configuration list for PBXNativeTarget "TangentTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5CE7E1CC305D2BBD007DC982 /* Debug */,
+				5CE7E1CD305D2BBD007DC982 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5CE7E1CE305D2BBD007DC982 /* Build configuration list for PBXNativeTarget "TangentUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5CE7E1CF305D2BBD007DC982 /* Debug */,
+				5CE7E1D0305D2BBD007DC982 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5CE7E2A0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.31.3;
+			};
+		};
+		5CE7E2C0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "swift-huggingface" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-huggingface.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.9.0;
+			};
+		};
+		5CE7E2E0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers";
+			requirement = {
+				kind = exactVersion;
+				version = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5CE7E2A1305D2BBB007DC982 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE7E2A0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		5CE7E2A2305D2BBB007DC982 /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE7E2A0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXVLM;
+		};
+		5CE7E2A3305D2BBB007DC982 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE7E2A0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		5CE7E2A4305D2BBB007DC982 /* MLXHuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE7E2A0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXHuggingFace;
+		};
+		5CE7E2C1305D2BBB007DC982 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE7E2C0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		5CE7E2E1305D2BBB007DC982 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE7E2E0305D2BBB007DC982 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 5CE7E19C305D2BBB007DC982 /* Project object */;
+}

@@ -1,0 +1,11 @@
+.build/
+DerivedData/
+*.xcresult
+*.xcactivitylog
+*.log
+.DS_Store
+xcuserdata/
+*.xcuserstate
+Tangent/Tangent-xcode16.xcodeproj/
+Tangent/Tangent-modern.xcodeproj/
+__pycache__/

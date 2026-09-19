@@ -1,0 +1,55 @@
+# Tangent
+
+Created by us, for you, for no money. This is not a business.
+
+**Developers:** Sierra Bonilla, George Drayson, and Magnus Ross.
+
+Tangent is a private voice diary for your interests, concerns, and everyday ideas.
+Record your thoughts, read them back, and choose if AI helps you reflect or not we don't mind. up to you.
+
+## What it does
+
+- Records voice entries and transcribes them on your device.
+- Optionally generates one short summary per entry.
+- Finds insights across your short summaries, guided by your interests and concerns.
+- Lets you choose from small Qwen, Gemma, and MedGemma models in Settings.
+
+AI starts off. Without it, your diary are just your transcripts. Turn on **AI summaries** and download a model in Settings to enable summaries and insights.
+
+## Privacy
+
+Your diary, transcription, and AI processing stay on your device. Model downloads
+come from Hugging Face when you choose to download them.
+
+iOS asks for Speech Recognition permission with a standard warning about sending
+speech to Apple. Tangent uses on-device recognition only: it checks device support
+and requires local processing for every request. If unavailable, transcription
+stops instead of uploading audio.
+[Apple explains this setting here](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
+
+## Make it your own
+
+You can change the interface, prompts, or model choices in the source code.
+To add a model, update [SummaryModelID](Tangent/Tangent/Domain/SummaryModelID.swift)
+and [MLXModelConfigurations](Tangent/Tangent/Services/Intelligence/MLXModelConfigurations.swift)
+with its Hugging Face repository, configuration, and resource estimates.
+Models must use a format and architecture supported by the installed MLX version
+and fit your device's storage and memory. Settings lists the models configured
+in the app; it does not accept arbitrary repository names.
+
+## Build
+
+Use an Apple Silicon Mac with Xcode and Python 3. From the repository root, run:
+
+```sh
+python3 scripts/environment.py auto --resolve --open
+```
+
+The helper selects dependencies for your Xcode version. Select the **Tangent**
+scheme, configure your signing team for a physical device, and run.
+The app requires iOS 18.2 or later. AI needs a supported physical device;
+the simulator can run the interface but not model inference.
+
+See [architecture](Tangent/ARCHITECTURE.md) for the code layout.
+
+Go on a few tangents!
