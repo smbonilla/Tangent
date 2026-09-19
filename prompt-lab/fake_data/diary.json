@@ -1,76 +1,65 @@
 [
   {
-    "day": "2026-09-07",
-    "transcript_path": "transcripts/2026-09-07.txt",
-    "reference_summary": "I spent forty focused minutes sketching my neighbourhood zine and kept going by putting my phone away.",
-    "required_concepts": [
-      ["sketch", "drawing"],
-      ["zine"]
-    ],
-    "forbidden_claims": [
-      "better than before"
-    ]
+    "id": "00000000-0000-0000-0000-000000000101",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-07T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000201", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-07.txt"
   },
   {
-    "day": "2026-09-08",
-    "transcript_path": "transcripts/2026-09-08.txt",
-    "reference_summary": "I let meetings and small jobs crowd out drawing, though I briefly practised a guitar chord more cleanly than yesterday.",
-    "required_concepts": [
-      ["meeting", "task", "job"],
-      ["guitar", "chord"]
-    ]
+    "id": "00000000-0000-0000-0000-000000000102",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-08T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000202", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-08.txt"
   },
   {
-    "day": "2026-09-09",
-    "transcript_path": "transcripts/2026-09-09.txt",
-    "reference_summary": "Showing Sam my zine sketches helped me stop polishing too early and made the project feel more possible.",
-    "required_concepts": [
-      ["Sam", "friend"],
-      ["zine", "sketch"],
-      ["polish", "possible", "smaller"]
-    ]
+    "id": "00000000-0000-0000-0000-000000000103",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-09T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000203", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-09.txt"
   },
   {
-    "day": "2026-09-10",
-    "transcript_path": "transcripts/2026-09-10.txt",
-    "reference_summary": "I got distracted by planning instead of drawing, then reduced tomorrow's work to finishing the rough layout.",
-    "required_concepts": [
-      ["distract", "scatter", "planning", "task"],
-      ["layout", "tomorrow", "next step"]
-    ]
+    "id": "00000000-0000-0000-0000-000000000104",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-10T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000204", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-10.txt"
   },
   {
-    "day": "2026-09-11",
-    "transcript_path": "transcripts/2026-09-11.txt",
-    "reference_summary": "I blocked out an uninterrupted hour, finished the rough layout for all eight pages, and felt relieved and proud.",
-    "required_concepts": [
-      ["layout"],
-      ["finish", "eight", "all"],
-      ["proud", "relieved"]
-    ]
+    "id": "00000000-0000-0000-0000-000000000105",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-11T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000205", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-11.txt"
   },
   {
-    "day": "2026-09-12",
-    "transcript_path": "transcripts/2026-09-12.txt",
-    "reference_summary": "I enjoyed an unhurried day cooking and playing cards with friends without feeling guilty about taking a break.",
-    "required_concepts": [
-      ["friend", "Priya"],
-      ["rest", "break", "guilt", "unhurried", "nice"]
-    ],
-    "forbidden_claims": [
-      "made time for creative work",
-      "worked on the zine",
-      "practised guitar"
-    ]
+    "id": "00000000-0000-0000-0000-000000000106",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-12T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000206", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-12.txt"
   },
   {
-    "day": "2026-09-13",
-    "transcript_path": "transcripts/2026-09-13.txt",
-    "reference_summary": "I used Sam's feedback to combine two pages, improve the zine, and found a concrete comment easier to act on than a blank page.",
-    "required_concepts": [
-      ["feedback", "Sam", "comment"],
-      ["combine", "page", "train"],
-      ["easier", "start", "blank"]
-    ]
+    "id": "00000000-0000-0000-0000-000000000107",
+    "profileID": "00000000-0000-0000-0000-000000000001",
+    "day": "2026-09-13T12:00:00Z",
+    "questions": [{"id": "00000000-0000-0000-0000-000000000207", "text": "What stood out to you today?"}],
+    "promptText": "Daily Tangent recorded and transcribed on device",
+    "summaryShort": "",
+    "transcriptPath": "transcripts/2026-09-13.txt"
   }
 ]
