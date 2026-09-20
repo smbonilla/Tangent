@@ -23,7 +23,7 @@ final class TangentUITests: XCTestCase {
     }
 
     @MainActor
-    func testMultipleRecordingsAndAddRecordMenu() throws {
+    func testMultipleRecordingsAndCalendarPopover() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-onboarding", "--multiple-recordings"]
         app.launch()
@@ -45,12 +45,15 @@ final class TangentUITests: XCTestCase {
         add(detail)
         app.navigationBars.buttons.firstMatch.tap()
         app.buttons["add-record"].tap()
-        app.buttons["Add a tangent for today"].tap()
+        XCTAssertTrue(app.otherElements["record-calendar"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Add a tangent for today"].exists)
+        XCTAssertFalse(app.buttons["Cancel"].exists)
+        let today = String(Calendar.current.component(.day, from: Date()))
+        app.otherElements["record-calendar"].buttons.containing(.staticText, identifier: today).firstMatch.tap()
         XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
         app.buttons["diary-home-logo"].tap()
         app.buttons["add-record"].tap()
-        app.buttons["Record for a past day"].tap()
-        XCTAssertTrue(app.otherElements["past-record-calendar"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["record-calendar"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["record-selected-day"].exists)
         let picker = XCTAttachment(screenshot: app.screenshot())
         picker.name = "Choose a past day"
@@ -58,7 +61,7 @@ final class TangentUITests: XCTestCase {
         add(picker)
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         let day = String(Calendar.current.component(.day, from: yesterday))
-        app.otherElements["past-record-calendar"].buttons.containing(.staticText, identifier: day).firstMatch.tap()
+        app.otherElements["record-calendar"].buttons.containing(.staticText, identifier: day).firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Start recording for")).firstMatch.waitForExistence(timeout: 3))
     }
 
@@ -70,9 +73,11 @@ final class TangentUITests: XCTestCase {
         app.buttons["complete-onboarding"].tap()
         XCTAssertTrue(app.buttons["add-record"].waitForExistence(timeout: 3))
         app.buttons["add-record"].tap()
-        XCTAssertTrue(app.otherElements["past-record-calendar"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["record-calendar"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Add a tangent for today"].exists)
-        app.buttons["Cancel"].tap()
+        XCTAssertFalse(app.buttons["Cancel"].exists)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.99, dy: 0.5)).tap()
+        XCTAssertTrue(app.otherElements["record-calendar"].waitForNonExistence(timeout: 3))
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Record today’s Tangent")).firstMatch.tap()
         XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
     }
