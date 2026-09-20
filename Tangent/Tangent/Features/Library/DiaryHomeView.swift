@@ -1,11 +1,10 @@
 import SwiftUI
-import UIKit
 
 struct DiaryHomeView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @StateObject private var model: DiaryHomeViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showsRecordingCalendar = false
+    @State private var showsAddRecordOptions = false
 
     private let calendar: Calendar
     private let openEntry: (UUID) -> Void
@@ -112,24 +111,64 @@ struct DiaryHomeView: View {
     }
 
     private var addRecordButton: some View {
-        Button { showsRecordingCalendar = true } label: { addRecordIcon }
-            .accessibilityLabel("Add a tangent")
-            .accessibilityIdentifier("add-record")
-            .tint(.gray)
-            .disabled(model.isLoading)
-            .popover(isPresented: $showsRecordingCalendar, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                RecordingCalendar(calendar: calendar) { day in
-                    showsRecordingCalendar = false
-                    if calendar.isDateInToday(day) {
-                        openRecord()
-                    } else {
-                        openEmptyDay(day)
+        Group {
+            if model.days.contains(where: { calendar.isDateInToday($0.date) && !$0.entries.isEmpty }) {
+                Button { showsAddRecordOptions = true } label: { addRecordIcon }
+                    .accessibilityLabel("Add a tangent")
+                    .popover(isPresented: $showsAddRecordOptions) {
+                        VStack(spacing: 0) {
+                            Button("Record for today") {
+                                showsAddRecordOptions = false
+                                openRecord()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            Divider()
+                            pastDatePicker
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .overlay {
+                                    Color(uiColor: .systemBackground).allowsHitTesting(false)
+                                    Text("Record for a past day")
+                                        .foregroundStyle(Color.tangentPurple)
+                                        .lineLimit(1)
+                                        .allowsHitTesting(false)
+                                }
+                        }
+                        .frame(width: 240)
+                        .padding(8)
+                        .presentationCompactAdaptation(.popover)
                     }
-                }
-                .frame(width: 320, height: 332)
-                .tint(Color.tangentPurple)
-                .presentationCompactAdaptation(.popover)
+            } else {
+                pastDatePicker
+                    .frame(width: 48, height: 48)
+                    .clipped()
+                    .overlay {
+                        Color.tangentWash.allowsHitTesting(false)
+                        addRecordIcon.allowsHitTesting(false)
+                    }
             }
+        }
+        .accessibilityIdentifier("add-record")
+        .disabled(model.isLoading)
+    }
+
+    private var pastDatePicker: some View {
+        DatePicker(
+            "Record for a past day",
+            selection: Binding(
+                // Today is the neutral selection. Every past date is a change.
+                get: { Date() },
+                set: { day in
+                    guard !calendar.isDateInToday(day) else { return }
+                    showsAddRecordOptions = false
+                    openEmptyDay(calendar.startOfDay(for: day))
+                }
+            ),
+            in: ...Date(),
+            displayedComponents: .date
+        )
+        .datePickerStyle(.compact)
+        .labelsHidden()
+        .accessibilityIdentifier("past-record-picker")
     }
 
     private var addRecordIcon: some View {
@@ -334,40 +373,6 @@ private enum DayCardChrome {
             return Color.tangentInk.opacity(0.38)
         case .today:
             return .white
-        }
-    }
-}
-
-// No initial selection: tapping any day, including today, starts a recording.
-private struct RecordingCalendar: UIViewRepresentable {
-    let calendar: Calendar
-    let onSelect: (Date) -> Void
-
-    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
-
-    func makeUIView(context: Context) -> UICalendarView {
-        let view = UICalendarView()
-        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        view.calendar = calendar
-        view.availableDateRange = DateInterval(start: .distantPast, end: Date())
-        view.visibleDateComponents = calendar.dateComponents([.year, .month], from: Date())
-        view.selectionBehavior = UICalendarSelectionSingleDate(delegate: context.coordinator)
-        view.accessibilityIdentifier = "record-calendar"
-        return view
-    }
-
-    func updateUIView(_ view: UICalendarView, context: Context) {
-        context.coordinator.parent = self
-    }
-
-    final class Coordinator: NSObject, UICalendarSelectionSingleDateDelegate {
-        var parent: RecordingCalendar
-        init(parent: RecordingCalendar) { self.parent = parent }
-
-        func dateSelection(_ selection: UICalendarSelectionSingleDate, didSelectDate components: DateComponents?) {
-            guard let components, let date = parent.calendar.date(from: components) else { return }
-            parent.onSelect(parent.calendar.startOfDay(for: date))
         }
     }
 }

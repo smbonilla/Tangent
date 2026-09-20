@@ -45,15 +45,13 @@ final class TangentUITests: XCTestCase {
         add(detail)
         app.navigationBars.buttons.firstMatch.tap()
         app.buttons["add-record"].tap()
-        XCTAssertTrue(app.otherElements["record-calendar"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Add a tangent for today"].exists)
-        XCTAssertFalse(app.buttons["Cancel"].exists)
-        let today = String(Calendar.current.component(.day, from: Date()))
-        app.otherElements["record-calendar"].buttons.containing(.staticText, identifier: today).firstMatch.tap()
+        app.buttons["Record for today"].tap()
         XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
         app.buttons["diary-home-logo"].tap()
         app.buttons["add-record"].tap()
-        XCTAssertTrue(app.otherElements["record-calendar"].waitForExistence(timeout: 3))
+        app.datePickers.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let calendarPicker = app.datePickers.containing(.button, identifier: "DatePicker.PreviousMonth").firstMatch
+        XCTAssertTrue(calendarPicker.waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["record-selected-day"].exists)
         let picker = XCTAttachment(screenshot: app.screenshot())
         picker.name = "Choose a past day"
@@ -61,23 +59,28 @@ final class TangentUITests: XCTestCase {
         add(picker)
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         let day = String(Calendar.current.component(.day, from: yesterday))
-        app.otherElements["record-calendar"].buttons.containing(.staticText, identifier: day).firstMatch.tap()
+        calendarPicker.buttons.containing(.staticText, identifier: day).firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Start recording for")).firstMatch.waitForExistence(timeout: 3))
     }
 
     @MainActor
     func testPlusOpensCalendarDirectlyBeforeTodaysFirstTangent() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing", "--reset-onboarding"]
+        app.launchArguments = ["--ui-testing", "--reset-onboarding", "--demo-data"]
         app.launch()
         app.buttons["complete-onboarding"].tap()
-        XCTAssertTrue(app.buttons["add-record"].waitForExistence(timeout: 3))
-        app.buttons["add-record"].tap()
-        XCTAssertTrue(app.otherElements["record-calendar"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Add a tangent for today"].exists)
+        XCTAssertTrue(app.datePickers.firstMatch.waitForExistence(timeout: 3))
+        app.datePickers.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let calendarPicker = app.datePickers.containing(.button, identifier: "DatePicker.PreviousMonth").firstMatch
+        XCTAssertTrue(calendarPicker.waitForExistence(timeout: 3))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Native calendar above plus at end of long diary"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        XCTAssertFalse(app.buttons["Record for today"].exists)
         XCTAssertFalse(app.buttons["Cancel"].exists)
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.99, dy: 0.5)).tap()
-        XCTAssertTrue(app.otherElements["record-calendar"].waitForNonExistence(timeout: 3))
+        XCTAssertTrue(calendarPicker.waitForNonExistence(timeout: 3))
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Record today’s Tangent")).firstMatch.tap()
         XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
     }
