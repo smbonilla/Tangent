@@ -104,8 +104,46 @@ enum DemoDataSeeder {
         #endif
     }
 
+    /// Temporary DEBUG seed: one filled day five days ago so the diary
+    /// timeline shows grey empty days that can use Fill in Tangent.
+    @MainActor
+    static func seedDummyPastDayIfNeeded(in modelContext: ModelContext) throws {
+        #if DEBUG
+        guard !ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
+        guard let profile = try modelContext.fetch(
+            FetchDescriptor<UserProfileRecord>(sortBy: [SortDescriptor(\.name)])
+        ).first else {
+            return
+        }
+
+        let entries = try modelContext.fetch(FetchDescriptor<DiaryEntryRecord>())
+            .filter { $0.profileID == profile.id }
+        if entries.contains(where: { $0.promptText == dummyPastDayPrompt }) {
+            return
+        }
+
+        let calendar = Calendar.autoupdatingCurrent
+        let today = calendar.startOfDay(for: Date())
+        guard let day = calendar.date(byAdding: .day, value: -5, to: today) else { return }
+        if entries.contains(where: { calendar.isDate($0.day, inSameDayAs: day) }) {
+            return
+        }
+
+        let path = try dummyPastDayTranscriptPath()
+        modelContext.insert(DiaryEntryRecord(entry: DiaryEntry(
+            profileID: profile.id,
+            day: day,
+            promptText: dummyPastDayPrompt,
+            summaryShort: "Dummy day so the grey Fill in Tangent cards can be checked.",
+            transcriptPath: path
+        )))
+        try modelContext.save()
+        #endif
+    }
+
     private static let demoPrompt = "Demo diary prompt for Taylor"
     private static let demoInsightPrompt = "Demo insight prompt for Taylor"
+    private static let dummyPastDayPrompt = "DEBUG dummy past day"
 
     private static func demoTranscriptPath(
         daysAgo: Int,
@@ -120,6 +158,19 @@ enum DemoDataSeeder {
         let url = directory.appending(path: "tangent-\(daysAgo)-days-ago.txt")
         let transcript = "Hi. I wanted to check in about today. \(summary) I want to remember what I tried and what I learned."
         try transcript.write(to: url, atomically: true, encoding: .utf8)
+        return url.path
+    }
+
+    private static func dummyPastDayTranscriptPath() throws -> String {
+        let directory = URL.applicationSupportDirectory
+            .appending(path: "DummyTranscripts", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        let url = directory.appending(path: "dummy-past-day.txt")
+        try "This is a temporary dummy transcript for checking Fill in Tangent."
+            .write(to: url, atomically: true, encoding: .utf8)
         return url.path
     }
 }

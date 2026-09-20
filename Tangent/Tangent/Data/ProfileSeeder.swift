@@ -27,6 +27,9 @@ enum ProfileSeeder {
             }
         }
         try modelContext.save()
+        #if DEBUG
+        try DemoDataSeeder.seedDummyPastDayIfNeeded(in: modelContext)
+        #endif
     }
 
     static let questionTexts = [
