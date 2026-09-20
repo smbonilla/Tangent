@@ -58,6 +58,50 @@ struct LiveTranscriptionTests {
     }
 
     @Test
+    func revisedPartialReplacesEarlierTextForTheSameAudio() {
+        var transcript = SpeechTranscriptAccumulator()
+        transcript.update(text: "Poetry, he said this morning as he looked through the page that showed him pages of",
+                          start: 0.4, end: 8, isStable: true)
+        let revision = "Poetry, he said this morning as he looked through the page I showed him pages of my"
+        transcript.update(text: revision, start: 0.5, end: 9, isStable: false)
+        #expect(transcript.text == revision)
+        transcript.update(text: revision + " poetry.", start: 0.5, end: 10, isStable: true)
+        #expect(transcript.text == revision + " poetry.")
+    }
+
+    @Test
+    func cumulativePartialReplacesOverlappingUtterancesDespiteWordingChanges() {
+        var transcript = SpeechTranscriptAccumulator()
+        transcript.update(text: "I walked home.", start: 0, end: 3, isStable: true)
+        transcript.update(text: "Then I cooked.", start: 5, end: 8, isStable: true)
+        let revision = "I walked back home, then I cooked dinner."
+        transcript.update(text: revision, start: 0, end: 9, isStable: false)
+        #expect(transcript.text == revision)
+        transcript.update(text: "Later I read.", start: 12, end: 15, isStable: false)
+        #expect(transcript.text == revision + " Later I read.")
+    }
+
+    @Test
+    func identicalPartialInLaterAudioIsNotDiscarded() {
+        var transcript = SpeechTranscriptAccumulator()
+        transcript.update(text: "Thank you.", start: 0, end: 1, isStable: true)
+        transcript.update(text: "Thank you.", start: 5, end: 6, isStable: false)
+        #expect(transcript.text == "Thank you. Thank you.")
+        transcript.update(text: "Thank you.", start: 5, end: 6, isStable: true)
+        #expect(transcript.text == "Thank you. Thank you.")
+    }
+
+    @Test
+    func partialRevisionKeepsUnrelatedSpeechInAudioOrder() {
+        var transcript = SpeechTranscriptAccumulator()
+        transcript.update(text: "Before.", start: 0, end: 1, isStable: true)
+        transcript.update(text: "Draft.", start: 3, end: 5, isStable: true)
+        transcript.update(text: "After.", start: 8, end: 10, isStable: true)
+        transcript.update(text: "Revised.", start: 3, end: 5, isStable: false)
+        #expect(transcript.text == "Before. Revised. After.")
+    }
+
+    @Test
     func repeatedWordsInSeparateUtterancesArePreserved() {
         var transcript = SpeechTranscriptAccumulator()
         transcript.update(text: "Thank you.", start: 0, end: 1, isStable: true)

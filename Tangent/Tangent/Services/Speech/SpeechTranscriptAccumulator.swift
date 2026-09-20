@@ -20,30 +20,25 @@ struct SpeechTranscriptAccumulator {
             completed.append(previous)
             partial = nil
         }
+        // Both partial and final results can revise already-settled speech.
+        // Audio time identifies a revision; matching words alone would also
+        // discard a phrase that the speaker genuinely says again later.
+        completed.removeAll {
+            abs($0.start - start) < 0.05 || (start < $0.end - 0.05 && end > $0.start + 0.05)
+        }
+        let utterance = Utterance(start: start, end: end, text: text)
         if isStable {
-            completed.removeAll {
-                abs($0.start - start) < 0.05 || (start < $0.end - 0.05 && end > $0.start + 0.05)
-            }
-            completed.append(Utterance(start: start, end: end, text: text))
-            completed.sort { $0.start < $1.start }
+            completed.append(utterance)
             partial = nil
         } else {
-            // Some OS versions repeat the last completed result or return a
-            // cumulative revision before beginning the next utterance.
-            let settled = completed.map(\.text).joined(separator: " ")
-            if text == completed.last?.text {
-                partial = nil
-            } else if !settled.isEmpty, text.hasPrefix(settled) {
-                partial = Utterance(start: start, end: end,
-                    text: String(text.dropFirst(settled.count)).trimmingCharacters(in: .whitespaces))
-            } else {
-                partial = Utterance(start: start, end: end, text: text)
-            }
+            partial = utterance
         }
     }
 
     var text: String {
-        (completed.map(\.text) + [partial?.text ?? ""]).filter { !$0.isEmpty }.joined(separator: " ")
+        var utterances = completed
+        if let partial { utterances.append(partial) }
+        return utterances.sorted { $0.start < $1.start }.map(\.text).joined(separator: " ")
     }
 }
 
