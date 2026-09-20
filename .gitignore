@@ -13,3 +13,6 @@ __pycache__/
 .pytest_cache/
 prompt-lab/.venv/
 prompt-lab/output/
+
+# Local website capture assets and working files
+/website-capture/
