@@ -28,6 +28,7 @@ struct SettingsView: View {
             modelSection
             privacySection
             messageSection
+            exportSection
         }
         .font(.system(.body))
         .foregroundStyle(Color.tangentInk)
@@ -38,22 +39,6 @@ struct SettingsView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .tabBar)
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
-            Button {
-                Task { await model.prepareExport() }
-            } label: {
-                Label("Export diary", systemImage: "square.and.arrow.up")
-                    .font(.system(.body, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Color.tangentPurple)
-            .disabled(model.profileID == nil || model.isLoading)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(.bar)
-        }
         .fileExporter(
             isPresented: $model.showsExporter,
             document: model.exportDocument,
@@ -154,6 +139,18 @@ struct SettingsView: View {
             .padding(.vertical, 6)
             .listRowBackground(Color.white)
             .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var exportSection: some View {
+        Section {
+            Button {
+                Task { await model.prepareExport() }
+            } label: {
+                Label("Export diary", systemImage: "square.and.arrow.up")
+            }
+            .tint(Color.tangentPurple)
+            .disabled(model.profileID == nil || model.isLoading)
         }
     }
 
