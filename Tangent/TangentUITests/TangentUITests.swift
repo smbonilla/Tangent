@@ -64,7 +64,11 @@ final class TangentUITests: XCTestCase {
         XCTAssertTrue(interests.exists)
         interests.tap()
         interests.typeText("Creative writing")
-        app.buttons["save-profile"].tap()
+        XCTAssertFalse(app.buttons["save-profile"].exists)
+        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(interests.waitForExistence(timeout: 3))
+        XCTAssertEqual(interests.value as? String, "Creative writing")
 
         let ai = app.switches["ai-enabled"]
         for _ in 0..<5 where !ai.isHittable { app.swipeUp() }

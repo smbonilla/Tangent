@@ -37,16 +37,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
-                    focusedProfileField = nil
-                    Task { await model.saveProfile() }
-                }
-                    .disabled(model.isLoading || model.isSavingProfile)
-                    .accessibilityIdentifier("save-profile")
-            }
-        }
+        .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             Button {
                 Task { await model.prepareExport() }
@@ -75,7 +66,11 @@ struct SettingsView: View {
             await model.load()
             await model.configureAI(preferences: preferences)
         }
-        .onDisappear { model.resetPendingAISetup() }
+        .onDisappear {
+            focusedProfileField = nil
+            model.resetPendingAISetup()
+            Task { await model.saveProfile() }
+        }
     }
 
     private var profileSection: some View {
