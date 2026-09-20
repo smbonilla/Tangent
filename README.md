@@ -10,6 +10,7 @@ Record your thoughts, read them back, and choose if AI helps you reflect or not 
 ## What it does
 
 - Records voice entries and transcribes them on your device.
+- Keeps multiple recordings per day as separate cards, ordered by recording start time. Use the circled plus in Diary to add another recording today or fill an empty past day; details show the recording's start time.
 - Transcribes in the background while you speak, preserving earlier speech across pauses and long recordings. If live recognition fails, the complete recording is kept for on-device recovery in short, overlapping windows.
 - Optionally generates one short summary per entry.
 - Finds insights across your short summaries, guided by your interests and concerns.
@@ -56,4 +57,4 @@ the simulator can run the interface but not model inference.
 
 See [architecture](Tangent/ARCHITECTURE.md) for the code layout.
 
-Go on a few tangents!
+Go on then, record a few tangents!
