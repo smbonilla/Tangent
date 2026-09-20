@@ -116,6 +116,8 @@ struct DailyTangentDetailsView: View {
         .background(Color.tangentWash)
         .navigationTitle("Daily Tangent")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
             if isEditing {

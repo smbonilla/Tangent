@@ -49,6 +49,8 @@ struct DiaryHomeView: View {
                 SettingsToolbarButton(action: openSettings)
             }
         }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .tabBar)
         .toolbarBackgroundVisibility(.hidden, for: .tabBar)
         .task(id: preferences.aiEnabled) {

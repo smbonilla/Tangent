@@ -15,6 +15,7 @@ struct ContentView: View {
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
         Self.makeTabBarTransparent()
+        Self.makeNavigationBarTransparent()
     }
 
     var body: some View {
@@ -129,7 +130,10 @@ struct ContentView: View {
         .tint(Color.tangentPurple)
         .toolbarBackground(.hidden, for: .tabBar)
         .toolbarBackgroundVisibility(.hidden, for: .tabBar)
-        .onAppear(perform: Self.makeTabBarTransparent)
+        .onAppear {
+            Self.makeTabBarTransparent()
+            Self.makeNavigationBarTransparent()
+        }
         .overlay {
             Color.tangentWash
                 .ignoresSafeArea()
@@ -185,6 +189,17 @@ struct ContentView: View {
         UITabBar.appearance().scrollEdgeAppearance = appearance
         UITabBar.appearance().isTranslucent = true
     }
+
+    private static func makeNavigationBarTransparent() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear
+        appearance.shadowColor = .clear
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().isTranslucent = true
+    }
 }
 
 private extension View {
@@ -194,6 +209,8 @@ private extension View {
                 DiaryLogoButton(action: action)
             }
         }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
     }
 }
 

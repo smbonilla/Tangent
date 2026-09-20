@@ -30,6 +30,8 @@ struct InsightsView: View {
         .background(Color.tangentWash)
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar {
             if let openSettings {
                 ToolbarItem(placement: .topBarTrailing) {

@@ -36,6 +36,8 @@ struct SettingsView: View {
         .background(Color.tangentWash)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .tabBar)
         .scrollDismissesKeyboard(.interactively)

@@ -90,6 +90,8 @@ struct RecordHomeView: View {
                 SettingsToolbarButton(action: openSettings)
             }
         }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .onChange(of: entryDay) { _, day in
             model.entryDay = day
         }
