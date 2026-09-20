@@ -6,6 +6,7 @@ DerivedData/
 .DS_Store
 xcuserdata/
 *.xcuserstate
+Tangent/Local.xcconfig
 Tangent/Tangent-xcode16.xcodeproj/
 Tangent/Tangent-modern.xcodeproj/
 __pycache__/
