@@ -15,10 +15,10 @@ struct RecordHomeView: View {
     private let instructionDelay: TimeInterval
     /// Forces the Reduce Motion presentation in previews.
     private let forcesReducedMotion: Bool
-    /// True while the Record tab is selected. The instruction fades in on each visit.
+    /// True while the Record tab is selected. The instruction appears with the orb.
     private let isActive: Bool
 
-    @State private var showsInstruction = false
+    @State private var showsInstruction: Bool
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
 
     init(
@@ -49,6 +49,7 @@ struct RecordHomeView: View {
         self.instructionDelay = instructionDelay
         self.forcesReducedMotion = forcesReducedMotion
         self.isActive = isActive
+        _showsInstruction = State(initialValue: isActive && instructionDelay <= 0)
     }
 
     private var reduceMotion: Bool {
@@ -102,12 +103,14 @@ struct RecordHomeView: View {
                 showsInstruction = false
                 return
             }
-            showsInstruction = false
             if instructionDelay > 0 {
+                showsInstruction = false
                 try? await Task.sleep(for: .seconds(instructionDelay))
+                guard !Task.isCancelled else { return }
             }
-            guard !Task.isCancelled else { return }
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 1.4)) {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
                 showsInstruction = true
             }
         }

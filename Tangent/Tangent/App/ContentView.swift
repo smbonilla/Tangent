@@ -26,8 +26,7 @@ struct ContentView: View {
                     openEntry: { diaryPath.append(.details($0)) },
                     openRecord: { startRecording(on: nil) },
                     openEmptyDay: { startRecording(on: $0) },
-                    openSettings: { diaryPath.append(.settings) },
-                    openDiary: showDiary
+                    openSettings: { diaryPath.append(.settings) }
                 )
                 .tangentLogoToolbar(action: showDiary)
                 .navigationDestination(for: DiaryRoute.self) { route in

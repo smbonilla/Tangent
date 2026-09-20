@@ -11,7 +11,6 @@ struct DiaryHomeView: View {
     private let openRecord: () -> Void
     private let openEmptyDay: (Date) -> Void
     private let openSettings: () -> Void
-    private let openDiary: () -> Void
 
     init(
         noteStore: any NoteStore,
@@ -20,8 +19,7 @@ struct DiaryHomeView: View {
         openEntry: @escaping (UUID) -> Void,
         openRecord: @escaping () -> Void,
         openEmptyDay: @escaping (Date) -> Void,
-        openSettings: @escaping () -> Void,
-        openDiary: @escaping () -> Void
+        openSettings: @escaping () -> Void
     ) {
         _model = StateObject(
             wrappedValue: DiaryHomeViewModel(
@@ -35,7 +33,6 @@ struct DiaryHomeView: View {
         self.openRecord = openRecord
         self.openEmptyDay = openEmptyDay
         self.openSettings = openSettings
-        self.openDiary = openDiary
     }
 
     var body: some View {
@@ -47,15 +44,11 @@ struct DiaryHomeView: View {
             }
         }
         .background(Color.tangentWash)
-        .overlay(alignment: .topTrailing) {
-            SettingsToolbarButton(action: openSettings)
-                .padding(.trailing, 6)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                SettingsToolbarButton(action: openSettings)
+            }
         }
-        .overlay(alignment: .topLeading) {
-            DiaryLogoButton(action: openDiary)
-                .padding(.leading, 6)
-        }
-        .toolbar(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .tabBar)
         .toolbarBackgroundVisibility(.hidden, for: .tabBar)
         .task(id: preferences.aiEnabled) {
@@ -90,7 +83,6 @@ struct DiaryHomeView: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: proxy.size.height, alignment: .center)
             }
-            .contentMargins(.top, 44, for: .scrollContent)
             .contentMargins(.bottom, 96, for: .scrollContent)
             .defaultScrollAnchor(.bottom)
             .refreshable {
@@ -106,7 +98,6 @@ struct DiaryHomeView: View {
             addRecordButton
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 44)
         .padding(.bottom, 40)
     }
 

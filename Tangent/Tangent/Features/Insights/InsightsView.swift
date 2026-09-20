@@ -30,6 +30,13 @@ struct InsightsView: View {
         .background(Color.tangentWash)
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let openSettings {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SettingsToolbarButton(action: openSettings)
+                }
+            }
+        }
         .onAppear {
             model.setSelectedModel(modelCatalog?.selectedModel ?? .default)
         }
