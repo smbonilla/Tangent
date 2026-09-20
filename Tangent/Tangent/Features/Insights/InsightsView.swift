@@ -4,13 +4,16 @@ struct InsightsView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @StateObject private var model: InsightsViewModel
     private let modelCatalog: (any ModelCatalog)?
+    private let openSettings: (() -> Void)?
 
     init(
         noteStore: any NoteStore,
         languageModel: any DiaryLanguageModel,
-        modelCatalog: (any ModelCatalog)? = nil
+        modelCatalog: (any ModelCatalog)? = nil,
+        openSettings: (() -> Void)? = nil
     ) {
         self.modelCatalog = modelCatalog
+        self.openSettings = openSettings
         _model = StateObject(
             wrappedValue: InsightsViewModel(
                 noteStore: noteStore,
@@ -101,11 +104,6 @@ struct InsightsView: View {
                 displayedComponents: .date
             )
 
-            Text("Looks back up to \(model.insightSpanDescription) with this model.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
             Button {
                 Task {
                     model.setSelectedModel(modelCatalog?.selectedModel ?? .default)
@@ -132,10 +130,16 @@ struct InsightsView: View {
             .accessibilityIdentifier("generate-insight")
 
             if !preferences.aiEnabled {
-                Text("Turn on model in Settings for this functionality.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                Button {
+                    openSettings?()
+                } label: {
+                    Text("Download model in Settings for this functionality.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens Settings")
             } else if let generationError = model.generationError {
                 Text(generationError)
                     .font(.system(.footnote))

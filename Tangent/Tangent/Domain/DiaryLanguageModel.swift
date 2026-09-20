@@ -95,7 +95,7 @@ enum DiaryLanguageModelError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .aiDisabled:
-            "Turn on model in Settings for this functionality."
+            "Download model in Settings for this functionality."
         case .unsupportedHardware:
             "AI summaries require an A14, M1 or newer chip."
         case .unsupportedDevice:

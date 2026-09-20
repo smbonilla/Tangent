@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var recordPath: [RecordRoute] = []
     @State private var recordingDay: Date?
     @State private var recordingEntryID: UUID?
+    @State private var insightsPath: [InsightsRoute] = []
     @State private var coversRecordTransition = false
 
     init(dependencies: AppDependencies) {
@@ -99,13 +100,24 @@ struct ContentView: View {
             }
             .tag(PrimaryTab.record)
 
-            NavigationStack {
+            NavigationStack(path: $insightsPath) {
                 InsightsView(
                     noteStore: dependencies.noteStore,
                     languageModel: dependencies.languageModel,
-                    modelCatalog: dependencies.modelCatalog
+                    modelCatalog: dependencies.modelCatalog,
+                    openSettings: { insightsPath.append(.settings) }
                 )
                 .tangentLogoToolbar(action: showDiary)
+                .navigationDestination(for: InsightsRoute.self) { route in
+                    switch route {
+                    case .settings:
+                        SettingsView(
+                            noteStore: dependencies.noteStore,
+                            reminderScheduler: dependencies.reminderScheduler,
+                            modelCatalog: dependencies.modelCatalog
+                        )
+                    }
+                }
             }
             .toolbarBackground(.hidden, for: .tabBar)
             .toolbarBackgroundVisibility(.hidden, for: .tabBar)
@@ -150,6 +162,7 @@ struct ContentView: View {
     private func showDiary() {
         diaryPath = []
         recordPath = []
+        insightsPath = []
         recordingDay = nil
         recordingEntryID = nil
         selectedTab = .diary
@@ -160,6 +173,7 @@ struct ContentView: View {
         recordingEntryID = entryID
         diaryPath = []
         recordPath = []
+        insightsPath = []
         selectedTab = .record
     }
 
@@ -198,6 +212,10 @@ private enum DiaryRoute: Hashable {
 
 
 private enum RecordRoute: Hashable {
+    case settings
+}
+
+private enum InsightsRoute: Hashable {
     case settings
 }
 

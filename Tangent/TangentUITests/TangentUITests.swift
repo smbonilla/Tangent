@@ -224,7 +224,10 @@ final class TangentUITests: XCTestCase {
         app.navigationBars["Settings"].buttons.firstMatch.tap()
         app.tabBars.buttons["Insights"].tap()
         XCTAssertFalse(app.buttons["generate-insight"].isEnabled)
-        XCTAssertTrue(app.staticTexts["Turn on model in Settings for this functionality."].exists)
+        XCTAssertTrue(app.buttons["Download model in Settings for this functionality."].exists)
+        app.buttons["Download model in Settings for this functionality."].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        app.navigationBars["Settings"].buttons.firstMatch.tap()
         let insightsScreenshot = XCTAttachment(screenshot: app.screenshot())
         insightsScreenshot.name = "Insights with AI off"
         insightsScreenshot.lifetime = .keepAlways
