@@ -132,7 +132,6 @@ struct SettingsView: View {
                     .font(.title3)
                     .foregroundStyle(Color.tangentPurple)
                 Text("All computation is on-device. Your data is private to you.")
-                    .font(.footnote)
                     .foregroundStyle(Color.tangentInk.opacity(0.75))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
