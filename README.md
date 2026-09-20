@@ -29,7 +29,10 @@ stops instead of uploading audio.
 
 ## Make it your own
 
-You can change the interface, prompts, or model choices in the source code.
+You can change the interface, prompts, or model choices in the source code. The
+production prompts are plain text files in
+[`Tangent/Tangent/Resources/Prompts`](Tangent/Tangent/Resources/Prompts), and the
+local [prompt lab](prompt-lab/README.md) can run them against Ollama.
 To add a model, update [SummaryModelID](Tangent/Tangent/Domain/SummaryModelID.swift)
 and [MLXModelConfigurations](Tangent/Tangent/Services/Intelligence/MLXModelConfigurations.swift)
 with its Hugging Face repository, configuration, and resource estimates.

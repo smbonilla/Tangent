@@ -45,46 +45,43 @@ struct PromptTemplate: Equatable, Sendable {
 extension PromptTemplate {
     /// The single sentence stored for each diary entry.
     static let dailyShortSummary = PromptTemplate(
-        text: """
-        Summarise this voice diary entry in one short sentence, in the writer's voice
-        using "I" and "my". Return only the sentence.
-
-        Capture what mattered in this entry: an experience, idea, activity, feeling,
-        achievement, or difficulty. It can be about any topic.
-        Use the writer's interests and concerns to choose what to foreground, but
-        never treat the profile as evidence that something happened today.
-        Do not invent details, give advice, or add an explanation.
-
-        USER PROFILE: {user_profile}
-
-        TRANSCRIPT: {transcript}
-        """
+        text: PromptResource.load("daily_short_summary")
     )
 
     static let weeklyInsights = PromptTemplate(
-        text: """
-        Write up to five brief insights, addressing the writer as "you", in clear
-        everyday language. Return only the insights.
-
-        Look back over the dated short summaries and notice trends, recurring
-        themes, changes, progress, or difficulties. Use the summaries as the
-        only evidence.
-
-        Interests and concerns, when listed, are context for what the writer may
-        want to hear about. Prefer observations that speak to them when the
-        summaries support that, but still report other clear patterns. If none
-        are listed, draw insights only from the summaries.
-
-        Do not invent events, reasons, or trends, and do not treat interests or
-        concerns as things that happened in this period.
-
-        INTERESTS AND CONCERNS: {user_profile}
-
-        NOTES ({period}):
-        {daily_summaries}
-        """
+        text: PromptResource.load("weekly_insights")
     )
 }
+
+private enum PromptResource {
+    static func load(_ name: String) -> String {
+        let locations: [String?] = ["Resources/Prompts", "Prompts", nil]
+        let bundles = [Bundle(for: PromptBundleToken.self), Bundle.main]
+        let url = bundles.lazy.compactMap { bundle in
+            locations.lazy.compactMap { subdirectory in
+                bundle.url(
+                    forResource: name,
+                    withExtension: "txt",
+                    subdirectory: subdirectory
+                )
+            }.first
+        }.first
+
+        guard let url else {
+            preconditionFailure("Missing bundled prompt resource: \(name).txt")
+        }
+
+        do {
+            return try String(contentsOf: url, encoding: .utf8)
+                .replacingOccurrences(of: "\r\n", with: "\n")
+                .trimmingCharacters(in: .newlines)
+        } catch {
+            preconditionFailure("Unable to read bundled prompt resource \(name).txt: \(error)")
+        }
+    }
+}
+
+private final class PromptBundleToken {}
 
 extension UserProfile {
     var focus: DiaryFocus {

@@ -38,7 +38,8 @@ background second generation task. Transcripts remain available in daily details
 `InsightsViewModel` filters entries by the selected date range and converts
 nonempty short summaries to `DiarySummary` values. The language-model service
 receives dates, summary text, and the user's interests and concerns.
-`PromptTemplate` orders the summaries by date and asks for trends in that
+`PromptTemplate` loads the canonical text templates from bundled resources,
+orders the summaries by date, and asks for trends in that
 range. Interests and concerns are optional context for what the writer may
 want to hear about; they are not required. Transcripts are not inputs.
 Entries without summaries are skipped.

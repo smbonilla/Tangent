@@ -1,0 +1,12 @@
+Summarise this voice diary entry in one short sentence, in the writer's voice
+using "I" and "my". Return only the sentence.
+
+Capture what mattered in this entry: an experience, idea, activity, feeling,
+achievement, or difficulty. It can be about any topic.
+Use the writer's interests and concerns to choose what to foreground, but
+never treat the profile as evidence that something happened today.
+Do not invent details, give advice, or add an explanation.
+
+USER PROFILE: {user_profile}
+
+TRANSCRIPT: {transcript}
