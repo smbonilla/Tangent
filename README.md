@@ -10,6 +10,7 @@ Record your thoughts, read them back, and choose if AI helps you reflect or not 
 ## What it does
 
 - Records voice entries and transcribes them on your device.
+- Transcribes in the background while you speak, preserving earlier speech across pauses and long recordings. If live recognition fails, the complete recording is kept for on-device recovery in short, overlapping windows.
 - Optionally generates one short summary per entry.
 - Finds insights across your short summaries, guided by your interests and concerns.
 - Lets you choose from small Qwen, Gemma, and MedGemma models in Settings.

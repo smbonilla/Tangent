@@ -23,6 +23,8 @@ final class RecordHomeViewModel: ObservableObject {
     private var questionTask: Task<Void, Never>?
     private var suggestionOfferTask: Task<Void, Never>?
     private var isFinishing = false
+    private var isStarting = false
+    private var liveTranscription: (any LiveTranscriptionSession)?
     private let initialQuestionDelay: Duration
     private let questionInterval: Duration
     private let questionTransitionDelay: Duration
@@ -46,7 +48,7 @@ final class RecordHomeViewModel: ObservableObject {
     }
 
     var isRecording: Bool { phase == .recording }
-    var isBusy: Bool { isRecording || isFinishing }
+    var isBusy: Bool { isRecording || isStarting || isFinishing }
 
     var formattedElapsed: String {
         let total = max(0, Int(elapsed))
@@ -57,6 +59,8 @@ final class RecordHomeViewModel: ObservableObject {
 
     func startRecording() async {
         guard !isBusy else { return }
+        isStarting = true
+        defer { isStarting = false }
         switch phase {
         case .idle, .failed:
             break
@@ -65,7 +69,21 @@ final class RecordHomeViewModel: ObservableObject {
         }
 
         do {
-            try await audioRecorder.startRecording(to: Self.newRecordingDestination())
+            let destination = Self.newRecordingDestination()
+            if let recorder = audioRecorder as? any LiveAudioRecorder,
+               let transcriber = transcriber as? any LiveTranscriber {
+                // Obtain speech permission before capturing the first sample.
+                // If unavailable, still keep the full recording for recovery.
+                let session = try? await transcriber.startLiveTranscription()
+                liveTranscription = session
+                try Task.checkCancellation()
+                try await recorder.startRecording(to: destination) { buffer in
+                    session?.append(buffer)
+                }
+            } else {
+                try Task.checkCancellation()
+                try await audioRecorder.startRecording(to: destination)
+            }
             elapsed = 0
             promptedQuestions = []
             currentPromptQuestion = nil
@@ -74,14 +92,11 @@ final class RecordHomeViewModel: ObservableObject {
             startElapsedTimer()
             scheduleQuestionSuggestionOffer()
 
-            // Warm the model while the user talks. By the time they stop and
-            // the transcript is ready, the weights are already in memory.
-            if let languageModel {
-                Task.detached(priority: .utility) {
-                    await languageModel.prepare()
-                }
-            }
+            // Leave memory available to live speech recognition. The summary
+            // model loads after the recording and transcription have finished.
         } catch {
+            liveTranscription?.cancel()
+            liveTranscription = nil
             phase = .failed(message: error.localizedDescription)
         }
     }
@@ -100,18 +115,42 @@ final class RecordHomeViewModel: ObservableObject {
 
         do {
             let recordingURL = try await audioRecorder.stopRecording()
-            return try await saveEntry(
+            let session = liveTranscription
+            liveTranscription = nil
+            var transcriptPath = recordingURL.path
+            if let session {
+                do {
+                    let text = try await session.finish()
+                    if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        transcriptPath = try Self.writeTranscript(text)
+                    }
+                } catch {
+                    session.cancel()
+                    // Save the audio path, so the details screen can retry the
+                    // whole recording in bounded windows. Never save a tail.
+                }
+            }
+            let id = try await saveEntry(
                 day: entryDay ?? Date(),
-                transcriptPath: recordingURL.path,
+                transcriptPath: transcriptPath,
                 questions: promptedQuestions
             )
+            // Keep the audio until the complete transcript and entry are both
+            // durable. Failed live recognition leaves it available for recovery.
+            if transcriptPath != recordingURL.path {
+                try? FileManager.default.removeItem(at: recordingURL)
+            }
+            return id
         } catch {
+            liveTranscription?.cancel()
+            liveTranscription = nil
             phase = .failed(message: error.localizedDescription)
             return nil
         }
     }
 
     deinit {
+        liveTranscription?.cancel()
         elapsedTask?.cancel()
         questionTask?.cancel()
         suggestionOfferTask?.cancel()
@@ -123,9 +162,8 @@ final class RecordHomeViewModel: ObservableObject {
         await startQuestionStream()
     }
 
-    /// Saves the entry with the audio path and the questions the user was
-    /// actually shown. The transcript and short summary are filled in on the
-    /// daily details screen.
+    /// Saves the completed live transcript, or the full audio path for recovery,
+    /// along with the questions the user was actually shown.
     func saveEntry(
         day: Date,
         transcriptPath: String,
@@ -249,7 +287,7 @@ final class RecordHomeViewModel: ObservableObject {
         )
         return documents
             .appending(path: "Recordings", directoryHint: .isDirectory)
-            .appending(path: "tangent-\(timestamp).m4a")
+            .appending(path: "tangent-\(timestamp)-\(UUID().uuidString).m4a")
     }
 }
 
