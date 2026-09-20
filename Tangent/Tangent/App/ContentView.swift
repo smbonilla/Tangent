@@ -22,9 +22,10 @@ struct ContentView: View {
                     modelCatalog: dependencies.modelCatalog,
                     openEntry: { diaryPath.append(.details($0)) },
                     openRecord: { selectedTab = .record },
-                    openSettings: { diaryPath.append(.settings) }
+                    openSettings: { diaryPath.append(.settings) },
+                    openDiary: showDiary
                 )
-                .tangentLogoToolbar()
+                .tangentLogoToolbar(action: showDiary)
                 .navigationDestination(for: DiaryRoute.self) { route in
                     switch route {
                     case .details(let diaryID):
@@ -73,7 +74,7 @@ struct ContentView: View {
                     onRecordingFinished: showDailySummary(for:),
                     isActive: selectedTab == .record
                 )
-                .tangentLogoToolbar()
+                .tangentLogoToolbar(action: showDiary)
                 .navigationDestination(for: RecordRoute.self) { route in
                     switch route {
                     case .settings:
@@ -99,7 +100,7 @@ struct ContentView: View {
                     languageModel: dependencies.languageModel,
                     modelCatalog: dependencies.modelCatalog
                 )
-                .tangentLogoToolbar()
+                .tangentLogoToolbar(action: showDiary)
             }
             .toolbarBackground(.hidden, for: .tabBar)
             .toolbarBackgroundVisibility(.hidden, for: .tabBar)
@@ -135,6 +136,12 @@ struct ContentView: View {
         }
     }
 
+    private func showDiary() {
+        diaryPath = []
+        recordPath = []
+        selectedTab = .diary
+    }
+
     private func startNewRecording() {
         diaryPath = []
         recordPath = []
@@ -153,14 +160,10 @@ struct ContentView: View {
 }
 
 private extension View {
-    func tangentLogoToolbar() -> some View {
+    func tangentLogoToolbar(action: @escaping () -> Void) -> some View {
         toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Image("Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 25, height: 25)
-                    .accessibilityLabel("Tangent")
+                DiaryLogoButton(action: action)
             }
         }
     }

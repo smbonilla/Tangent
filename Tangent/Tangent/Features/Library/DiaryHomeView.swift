@@ -9,6 +9,7 @@ struct DiaryHomeView: View {
     private let openEntry: (UUID) -> Void
     private let openRecord: () -> Void
     private let openSettings: () -> Void
+    private let openDiary: () -> Void
 
     init(
         noteStore: any NoteStore,
@@ -16,7 +17,8 @@ struct DiaryHomeView: View {
         calendar: Calendar = .autoupdatingCurrent,
         openEntry: @escaping (UUID) -> Void,
         openRecord: @escaping () -> Void,
-        openSettings: @escaping () -> Void
+        openSettings: @escaping () -> Void,
+        openDiary: @escaping () -> Void
     ) {
         _model = StateObject(
             wrappedValue: DiaryHomeViewModel(
@@ -29,6 +31,7 @@ struct DiaryHomeView: View {
         self.openEntry = openEntry
         self.openRecord = openRecord
         self.openSettings = openSettings
+        self.openDiary = openDiary
     }
 
     var body: some View {
@@ -45,13 +48,8 @@ struct DiaryHomeView: View {
                 .padding(.trailing, 6)
         }
         .overlay(alignment: .topLeading) {
-            Image("Logo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 25, height: 25)
-                .frame(width: 44, height: 44)
+            DiaryLogoButton(action: openDiary)
                 .padding(.leading, 6)
-                .accessibilityLabel("Tangent")
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .tabBar)
