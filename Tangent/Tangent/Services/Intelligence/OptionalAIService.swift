@@ -1,7 +1,8 @@
 import Combine
 import Foundation
 
-/// Gates every model entry point, including calls already in progress when AI is disabled.
+/// Gates generation, including calls in progress when AI is disabled.
+/// Explicit model downloads remain available while AI is off for setup.
 @MainActor
 final class OptionalAIService: DiaryLanguageModel, ModelCatalog {
     private let queue = ModelOperationQueue()
@@ -79,7 +80,6 @@ final class OptionalAIService: DiaryLanguageModel, ModelCatalog {
     var selectedModel: SummaryModelID { catalog.selectedModel }
 
     func select(_ model: SummaryModelID) {
-        guard preferences.aiEnabled else { return }
         catalog.select(model)
     }
 
@@ -88,18 +88,23 @@ final class OptionalAIService: DiaryLanguageModel, ModelCatalog {
     }
 
     func download(_ model: SummaryModelID, onProgress: @escaping @MainActor (DownloadProgress) -> Void) async throws {
-        try await run { [catalog] in
-            try await catalog.download(model, onProgress: onProgress)
-        }
+        // Model setup must be possible before AI can be enabled.
+        try await catalog.download(model, onProgress: onProgress)
     }
 
     func cancelDownload(_ model: SummaryModelID) { catalog.cancelDownload(model) }
-    func delete(_ model: SummaryModelID) async throws { try await catalog.delete(model) }
+    func delete(_ model: SummaryModelID) async throws {
+        try await catalog.delete(model)
+        if model == catalog.selectedModel, preferences.aiEnabled {
+            preferences.aiEnabled = false
+        }
+    }
 
     private func requireDownloadedModel() async throws {
         guard preferences.aiEnabled else { throw DiaryLanguageModelError.aiDisabled }
         let selected = catalog.selectedModel
         guard await catalog.state(of: selected).isReady else {
+            preferences.aiEnabled = false
             throw DiaryLanguageModelError.modelNotDownloaded(selected)
         }
     }

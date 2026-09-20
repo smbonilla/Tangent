@@ -14,7 +14,7 @@ Record your thoughts, read them back, and choose if AI helps you reflect or not 
 - Finds insights across your short summaries, guided by your interests and concerns.
 - Lets you choose from small Qwen, Gemma, and MedGemma models in Settings.
 
-AI starts off. Without it, your diary are just your transcripts. Turn on **AI summaries** and download a model in Settings to enable summaries and insights.
+AI starts off. Without it, your diary contains just your transcripts. Choose and download a model during onboarding to enable **AI summaries**, or continue without AI. You can download, switch, and remove models in Settings later. AI stays off until the selected model is downloaded, and removing the active model turns AI off.
 
 ## Privacy
 

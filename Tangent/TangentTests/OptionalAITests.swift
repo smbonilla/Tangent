@@ -27,7 +27,7 @@ struct OptionalAITests {
     }
 
     @Test
-    func disabledAIBlocksAllModelWorkButKeepsTranscripts() async throws {
+    func disabledAIBlocksGenerationButAllowsExplicitModelSetup() async throws {
         let suite = "TangentTests.\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -36,9 +36,8 @@ struct OptionalAITests {
         let catalog = SpyModelCatalog()
         let service = OptionalAIService(preferences: preferences, languageModel: languageModel, catalog: catalog)
         await service.prepare()
-        await #expect(throws: DiaryLanguageModelError.aiDisabled) {
-            try await service.download(.default, onProgress: { _ in })
-        }
+        try await service.download(.default, onProgress: { _ in })
+        #expect(!preferences.aiEnabled)
         await #expect(throws: DiaryLanguageModelError.aiDisabled) {
             try await service.generateInsights(from: [], focus: DiaryFocus(), period: "Today", onPartial: nil)
         }
@@ -55,12 +54,12 @@ struct OptionalAITests {
         #expect(details.transcript == "I went for a walk.\nThen I drew a tree.")
         #expect(try await store.diaryEntry(id: entry.id)?.summaryShort == "")
         #expect(await languageModel.calls == 0)
-        #expect(catalog.downloads == 0)
+        #expect(catalog.downloads == 1)
         #expect(DiaryHomeViewModel.transcriptPreview(at: path) == "I went for a walk. Then I drew a tree...")
         #expect(DiaryHomeViewModel.transcriptPreview(at: "/missing.txt") == "Transcript not available")
 
         preferences.aiEnabled = true
-        #expect(catalog.downloads == 0) // Enabling AI retains explicit download consent.
+        #expect(catalog.downloads == 1) // Enabling AI retains explicit download consent.
         catalog.downloaded = false
         let diary = DiaryHomeViewModel(noteStore: store, modelCatalog: catalog)
         await diary.load()
@@ -68,11 +67,76 @@ struct OptionalAITests {
         await details.regenerate()
         #expect(details.summaryDisplay == .failed(message: DiaryLanguageModelError.modelNotDownloaded(.default).localizedDescription, needsModel: true))
         #expect(await languageModel.calls == 0)
+        #expect(!preferences.aiEnabled)
         catalog.downloaded = true
+        preferences.aiEnabled = true
         await diary.load()
         #expect(!diary.needsModel)
         await details.regenerate()
         #expect(try await store.diaryEntry(id: entry.id)?.summaryShort == "A walk and a drawing.")
+    }
+
+    @Test
+    func modelSetupOnlyEnablesAIWhenSelectedModelIsReady() async throws {
+        let suite = "TangentTests.\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = AppPreferences(defaults: defaults)
+        let catalog = SpyModelCatalog()
+        catalog.downloaded = false
+        let service = OptionalAIService(preferences: preferences, languageModel: ControlledLanguageModel(), catalog: catalog)
+        let container = try TangentModelContainer.make(inMemory: true)
+        let model = SettingsViewModel(
+            noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
+            reminderScheduler: UnavailableReminderScheduler(), modelCatalog: service
+        )
+        await model.configureAI(preferences: preferences)
+        model.setAIRequested(true)
+        model.chooseModel(.gemma3_1B)
+        #expect(catalog.selectedModel == .gemma3_1B)
+        #expect(!preferences.aiEnabled)
+        #expect(!model.selectedModelIsReady)
+        #expect(catalog.downloads == 0)
+
+        catalog.downloadError = URLError(.notConnectedToInternet)
+        await model.download(.gemma3_1B)
+        #expect(!preferences.aiEnabled)
+        #expect(!model.selectedModelIsReady)
+
+        catalog.downloadError = nil
+        await model.download(.gemma3_1B)
+        #expect(model.selectedModelIsReady)
+        #expect(preferences.aiEnabled)
+
+        await model.deleteModel(.gemma3_1B)
+        #expect(!preferences.aiEnabled)
+        #expect(!model.aiRequested)
+        #expect(!model.selectedModelIsReady)
+
+        model.setAIRequested(true)
+        model.resetPendingAISetup()
+        #expect(!model.aiRequested)
+        await model.download(.gemma3_1B)
+        #expect(!preferences.aiEnabled) // Finishing a download cannot undo opting out.
+    }
+
+    @Test
+    func setupTurnsOffPersistedAIWithoutDownloadedModel() async throws {
+        let suite = "TangentTests.\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = AppPreferences(defaults: defaults)
+        preferences.aiEnabled = true
+        let catalog = SpyModelCatalog()
+        catalog.downloaded = false
+        let container = try TangentModelContainer.make(inMemory: true)
+        let model = SettingsViewModel(
+            noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
+            reminderScheduler: UnavailableReminderScheduler(), modelCatalog: catalog
+        )
+        await model.configureAI(preferences: preferences)
+        #expect(!preferences.aiEnabled)
+        #expect(!model.aiRequested)
     }
 
     @Test
@@ -126,12 +190,17 @@ private final class SpyModelCatalog: ModelCatalog {
     var selectedModel = SummaryModelID.default
     var downloaded = true
     var downloads = 0
+    var downloadError: Error?
     var cancelled: [SummaryModelID] = []
     func select(_ model: SummaryModelID) { selectedModel = model }
     func state(of model: SummaryModelID) async -> ModelDownloadState { downloaded ? .ready(bytesOnDisk: 1) : .notDownloaded }
-    func download(_ model: SummaryModelID, onProgress: @escaping @MainActor (DownloadProgress) -> Void) async throws { downloads += 1 }
+    func download(_ model: SummaryModelID, onProgress: @escaping @MainActor (DownloadProgress) -> Void) async throws {
+        downloads += 1
+        if let downloadError { throw downloadError }
+        downloaded = true
+    }
     func cancelDownload(_ model: SummaryModelID) { cancelled.append(model) }
-    func delete(_ model: SummaryModelID) async throws {}
+    func delete(_ model: SummaryModelID) async throws { downloaded = false }
 }
 
 struct ModelResourceGuardTests {

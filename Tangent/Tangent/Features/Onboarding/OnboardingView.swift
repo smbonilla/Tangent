@@ -7,9 +7,10 @@ struct OnboardingView: View {
     private enum Field: Hashable { case name, interests, concerns }
     @FocusState private var focusedField: Field?
 
-    init(noteStore: any NoteStore) {
+    init(noteStore: any NoteStore, modelCatalog: any ModelCatalog) {
         _model = StateObject(wrappedValue: SettingsViewModel(
-            noteStore: noteStore, reminderScheduler: UnavailableReminderScheduler()
+            noteStore: noteStore, reminderScheduler: UnavailableReminderScheduler(),
+            modelCatalog: modelCatalog
         ))
     }
 
@@ -43,28 +44,16 @@ struct OnboardingView: View {
                             .padding(16)
                             .background(.background, in: RoundedRectangle(cornerRadius: 12))
                         }
-                        VStack(alignment: .leading, spacing: 8) {
-                            AIToggle()
-                                .padding(16)
-                                .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                            VStack(alignment: .leading, spacing: 6) {
-                                AIRequirementsNote()
-                                Text("Download your preferred model in Settings to generate summaries.")
-                            }
-                            .font(.footnote)
-                            .foregroundStyle(Color(uiColor: .secondaryLabel))
-                            .opacity(preferences.aiEnabled ? 1 : 0)
-                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: preferences.aiEnabled)
-                            .accessibilityHidden(!preferences.aiEnabled)
-                            .allowsHitTesting(preferences.aiEnabled)
-                        }
+                        AIModelSetupView(model: model)
+                            .padding(16)
+                            .background(.background, in: RoundedRectangle(cornerRadius: 12))
                         if let message = model.message {
                             Text(message).foregroundStyle(.secondary)
                         }
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: layout.size.height, alignment: .center)
+                    .frame(minHeight: layout.size.height, alignment: .top)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
@@ -87,23 +76,30 @@ struct OnboardingView: View {
             }
             .foregroundStyle(Color.tangentInk)
             .safeAreaInset(edge: .bottom) {
-                Button {
-                    focusedField = nil
-                    Task {
-                        if model.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { model.name = "You" }
-                        if await model.saveProfile() { preferences.completeOnboarding() }
+                VStack(spacing: 12) {
+                    Button { finishOnboarding() } label: {
+                        Text("Get started")
+                            .font(.system(.body, weight: .semibold))
+                            .frame(maxWidth: .infinity)
                     }
-                } label: {
-                    Text("Get started")
-                        .font(.system(.body, weight: .semibold))
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(model.isLoading || model.isSavingProfile || !model.aiSetupLoaded
+                                  || (model.aiRequested && !model.selectedModelIsReady))
+                        .accessibilityIdentifier("complete-onboarding")
+                    if model.aiRequested && !model.selectedModelIsReady {
+                        Button("Continue without AI") {
+                            model.setAIRequested(false)
+                            finishOnboarding()
+                        }
+                        .disabled(model.isLoading || model.isSavingProfile)
+                        .accessibilityIdentifier("continue-without-ai")
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(model.isLoading || model.isSavingProfile)
-                .accessibilityIdentifier("complete-onboarding")
                 .padding(20)
+                .background(Color.tangentWash)
             }
+
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -113,9 +109,19 @@ struct OnboardingView: View {
             .task {
                 await model.load()
                 if model.name == "You" { model.name = "" }
+                await model.configureAI(preferences: preferences)
             }
+            .onDisappear { model.resetPendingAISetup() }
         }
         .tint(Color.tangentPurple)
+    }
+
+    private func finishOnboarding() {
+        focusedField = nil
+        Task {
+            if model.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { model.name = "You" }
+            if await model.saveProfile() { preferences.completeOnboarding() }
+        }
     }
 
     private func sectionHeading(_ title: String) -> some View {

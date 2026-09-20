@@ -7,6 +7,7 @@ import SwiftUI
 struct TangentApp: App {
     private let modelContainer: ModelContainer
     private let dependencies: AppDependencies
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var preferences: AppPreferences
 
     init() {
@@ -86,12 +87,20 @@ struct TangentApp: App {
                 if preferences.onboardingCompleted {
                     ContentView(dependencies: dependencies)
                 } else {
-                    OnboardingView(noteStore: dependencies.noteStore)
+                    OnboardingView(noteStore: dependencies.noteStore, modelCatalog: dependencies.modelCatalog)
                 }
             }
             .environmentObject(preferences)
             // Keep forms and presented screens consistent with Tangent's light palette.
             .preferredColorScheme(.light)
+            .task(id: scenePhase) {
+                guard scenePhase == .active, preferences.aiEnabled else { return }
+                let selected = dependencies.modelCatalog.selectedModel
+                let state = await dependencies.modelCatalog.state(of: selected)
+                if selected == dependencies.modelCatalog.selectedModel && !state.isReady {
+                    preferences.aiEnabled = false
+                }
+            }
         }
         .modelContainer(modelContainer)
     }

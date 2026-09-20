@@ -59,7 +59,7 @@ final class TangentUITests: XCTestCase {
         app.buttons["complete-onboarding"].tap()
         app.buttons["Settings"].tap()
         XCTAssertTrue(app.textFields["profile-name"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Your focus"].exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "Your focus")).firstMatch.exists)
         let interests = app.descendants(matching: .any).matching(identifier: "profile-interests").firstMatch
         XCTAssertTrue(interests.exists)
         interests.tap()
@@ -70,12 +70,46 @@ final class TangentUITests: XCTestCase {
         for _ in 0..<5 where !ai.isHittable { app.swipeUp() }
         ai.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         let qwen = app.buttons["model-qwen2.5-0.5b-instruct-4bit"]
-        for _ in 0..<5 where !qwen.isHittable { app.swipeUp() }
+        // iOS can report an off-screen Form button as hittable while it is
+        // below the fixed export footer. Bring the complete row into view.
+        for _ in 0..<5 where !qwen.isHittable || qwen.frame.maxY >= app.buttons["Export diary"].frame.minY {
+            app.swipeUp()
+        }
         XCTAssertTrue(qwen.isHittable)
         qwen.tap()
         XCTAssertEqual(qwen.value as? String, "Selected")
         // Choosing a model is a preference; it must not start downloading weights.
         XCTAssertFalse(app.buttons["Cancel"].exists)
+    }
+
+    @MainActor
+    func testOnboardingCanSkipModelSetupAndScrollThroughModels() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding"]
+        app.launch()
+        let ai = app.switches["ai-enabled"]
+        XCTAssertTrue(ai.waitForExistence(timeout: 5))
+        ai.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertFalse(app.buttons["complete-onboarding"].isEnabled)
+        let lastModel = app.buttons["model-medgemma-1.5-4b-it-4bit"]
+        for _ in 0..<6 where !lastModel.isHittable { app.swipeUp() }
+        XCTAssertTrue(lastModel.isHittable)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Onboarding model choices scrolled"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["continue-without-ai"].tap()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 3))
+        app.buttons["Settings"].tap()
+        let settingsAI = app.switches["ai-enabled"]
+        for _ in 0..<5 where !settingsAI.isHittable { app.swipeUp() }
+        XCTAssertEqual(settingsAI.value as? String, "0")
+        settingsAI.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertTrue(app.staticTexts["AI summaries will stay off until a model is downloaded"].exists)
+        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        app.buttons["Settings"].tap()
+        for _ in 0..<5 where !settingsAI.isHittable { app.swipeUp() }
+        XCTAssertEqual(settingsAI.value as? String, "0")
     }
 
     @MainActor
@@ -93,8 +127,12 @@ final class TangentUITests: XCTestCase {
         let onboardingAI = app.switches["ai-enabled"]
         let concernsField = app.descendants(matching: .any).matching(identifier: "profile-concerns").firstMatch
         XCTAssertGreaterThan(onboardingAI.frame.minY, concernsField.frame.maxY)
+        let nameBeforeExpansion = app.textFields["profile-name"].frame
         onboardingAI.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        XCTAssertTrue(app.staticTexts["Download your preferred model in Settings to generate summaries."].exists)
+        XCTAssertTrue(app.staticTexts["ai-setup-required"].exists)
+        XCTAssertFalse(app.buttons["complete-onboarding"].isEnabled)
+        XCTAssertTrue(app.buttons["continue-without-ai"].exists)
+        XCTAssertEqual(app.textFields["profile-name"].frame.minY, nameBeforeExpansion.minY, accuracy: 2)
         let enabledScreenshot = XCTAttachment(screenshot: app.screenshot())
         enabledScreenshot.name = "Onboarding with AI summaries on"
         enabledScreenshot.lifetime = .keepAlways

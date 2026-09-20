@@ -20,6 +20,37 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var selectedModel = SummaryModelID.default
     @Published private(set) var modelStates: [SummaryModelID: ModelDownloadState] = [:]
 
+    @Published private(set) var aiRequested = false
+    @Published private(set) var aiSetupLoaded = false
+    private var preferences: AppPreferences?
+
+    var selectedModelIsReady: Bool { modelStates[selectedModel]?.isReady == true }
+
+    func configureAI(preferences: AppPreferences) async {
+        self.preferences = preferences
+        aiSetupLoaded = false
+        aiRequested = preferences.aiEnabled
+        await loadModels()
+    }
+
+    func setAIRequested(_ requested: Bool) {
+        aiRequested = requested
+        if !requested {
+            for model in SummaryModelID.allCases { modelCatalog?.cancelDownload(model) }
+        }
+        updateAIAvailability()
+    }
+
+    func resetPendingAISetup() {
+        if !selectedModelIsReady { setAIRequested(false) }
+    }
+
+    private func updateAIAvailability() {
+        guard let preferences else { return }
+        let enabled = aiRequested && selectedModelIsReady
+        if preferences.aiEnabled != enabled { preferences.aiEnabled = enabled }
+    }
+
     private let noteStore: any NoteStore
     private let reminderScheduler: any ReminderScheduler
     private let modelCatalog: (any ModelCatalog)?
@@ -161,6 +192,9 @@ final class SettingsViewModel: ObservableObject {
         for model in SummaryModelID.allCases {
             modelStates[model] = await modelCatalog.state(of: model)
         }
+        if !aiSetupLoaded && !selectedModelIsReady { aiRequested = false }
+        aiSetupLoaded = true
+        updateAIAvailability()
         await followDownloads()
     }
 
@@ -177,6 +211,7 @@ final class SettingsViewModel: ObservableObject {
             where modelStates[model]?.isDownloading == true {
                 modelStates[model] = await modelCatalog.state(of: model)
             }
+            updateAIAvailability()
         }
     }
 
@@ -187,6 +222,7 @@ final class SettingsViewModel: ObservableObject {
         guard let modelCatalog else { return }
         modelCatalog.select(model)
         selectedModel = model
+        updateAIAvailability()
     }
 
     func download(_ model: SummaryModelID) async {
@@ -204,12 +240,14 @@ final class SettingsViewModel: ObservableObject {
         } catch {
             modelStates[model] = .failed(message: error.localizedDescription)
         }
+        updateAIAvailability()
     }
 
     func cancelDownload(_ model: SummaryModelID) async {
         guard let modelCatalog else { return }
         modelCatalog.cancelDownload(model)
         modelStates[model] = await modelCatalog.state(of: model)
+        updateAIAvailability()
     }
 
     func deleteModel(_ model: SummaryModelID) async {
@@ -221,6 +259,8 @@ final class SettingsViewModel: ObservableObject {
             message = "\(model.displayName) could not be removed."
         }
         modelStates[model] = await modelCatalog.state(of: model)
+        if model == selectedModel && !selectedModelIsReady { aiRequested = false }
+        updateAIAvailability()
     }
 
     func stateDescription(for model: SummaryModelID) -> String {
