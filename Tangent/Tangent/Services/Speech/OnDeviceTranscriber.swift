@@ -26,9 +26,9 @@ enum TranscriptionError: LocalizedError {
 
 /// Live recognition and bounded file recovery both stay entirely on device.
 final class OnDeviceTranscriber: LiveTranscriber {
-    func startLiveTranscription() async throws -> any LiveTranscriptionSession {
+    func startLiveTranscription(onPartial: @escaping @Sendable (String) -> Void) async throws -> any LiveTranscriptionSession {
         try await requestAuthorization()
-        return LiveSpeechSession(recognizer: try makeOnDeviceRecognizer())
+        return LiveSpeechSession(recognizer: try makeOnDeviceRecognizer(), onPartial: onPartial)
     }
 
     func transcribe(audioAt url: URL) async throws -> String {

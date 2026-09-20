@@ -138,7 +138,7 @@ enum DemoDataSeeder {
 
         for entry in dummyEntries {
             if !entry.transcriptPath.isEmpty {
-                try? FileManager.default.removeItem(atPath: entry.transcriptPath)
+                try? FileManager.default.removeItem(at: TranscriptFiles.url(for: entry.transcriptPath))
             }
             modelContext.delete(entry)
         }

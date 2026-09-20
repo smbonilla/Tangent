@@ -11,7 +11,7 @@ Record your thoughts, read them back, and choose if AI helps you reflect or not 
 
 - Records voice entries and transcribes them on your device.
 - Keeps multiple recordings per day as separate cards, ordered by recording start time. Use the circled plus in Diary to pick a past date with the native date picker; after recording today, the plus also offers another recording for today; details show the recording's start time.
-- Transcribes in the background while you speak, preserving earlier speech across pauses and long recordings. If live recognition fails, the complete recording is kept for on-device recovery in short, overlapping windows.
+- Transcribes in the background while you speak, atomically saving text checkpoints in Documents/Transcripts and preserving earlier speech across pauses and long recordings. Transcript references survive app-container changes, and recovered text is saved before it is displayed. If live recognition fails, the complete recording is kept for on-device recovery in short, overlapping windows.
 - Optionally generates one short summary per entry.
 - Finds insights across your short summaries, guided by your interests and concerns.
 - Lets you choose from small Qwen, Gemma, and MedGemma models in Settings.

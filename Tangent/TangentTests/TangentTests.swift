@@ -243,7 +243,7 @@ struct TangentTests {
             testCalendar.date(from: DateComponents(year: 2026, month: 9, day: 12))
         )
         let path = try RecordHomeViewModel.writeTranscript("A quieter day.")
-        defer { try? FileManager.default.removeItem(atPath: path) }
+        defer { try? FileManager.default.removeItem(at: TranscriptFiles.url(for: path)) }
 
         let id = try await recorder.saveEntry(day: pastDay, transcriptPath: path, questions: [])
         let saved = try #require(await store.diaryEntry(id: id))
@@ -269,8 +269,8 @@ struct TangentTests {
         let firstPath = try RecordHomeViewModel.writeTranscript("First take.")
         let secondPath = try RecordHomeViewModel.writeTranscript("Second take.")
         defer {
-            try? FileManager.default.removeItem(atPath: firstPath)
-            try? FileManager.default.removeItem(atPath: secondPath)
+            try? FileManager.default.removeItem(at: TranscriptFiles.url(for: firstPath))
+            try? FileManager.default.removeItem(at: TranscriptFiles.url(for: secondPath))
         }
 
         let firstID = try await recorder.saveEntry(

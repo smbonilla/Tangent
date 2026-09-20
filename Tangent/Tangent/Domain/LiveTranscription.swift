@@ -10,7 +10,7 @@ protocol LiveAudioRecorder: AudioRecorder {
 }
 
 protocol LiveTranscriber: Transcriber {
-    func startLiveTranscription() async throws -> any LiveTranscriptionSession
+    func startLiveTranscription(onPartial: @escaping @Sendable (String) -> Void) async throws -> any LiveTranscriptionSession
 }
 
 protocol LiveTranscriptionSession: AnyObject, Sendable {
@@ -18,4 +18,10 @@ protocol LiveTranscriptionSession: AnyObject, Sendable {
     func append(_ buffer: AVAudioPCMBuffer)
     func finish() async throws -> String
     func cancel()
+}
+
+extension LiveTranscriber {
+    func startLiveTranscription() async throws -> any LiveTranscriptionSession {
+        try await startLiveTranscription(onPartial: { _ in })
+    }
 }

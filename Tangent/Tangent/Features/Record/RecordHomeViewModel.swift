@@ -28,6 +28,7 @@ final class RecordHomeViewModel: ObservableObject {
     private var suggestionOfferTask: Task<Void, Never>?
     private var isFinishing = false
     private var isStarting = false
+    private var transcriptCheckpoint: TranscriptCheckpoint?
     private var liveTranscription: (any LiveTranscriptionSession)?
     private let initialQuestionDelay: Duration
     private let questionInterval: Duration
@@ -74,11 +75,16 @@ final class RecordHomeViewModel: ObservableObject {
 
         do {
             let destination = Self.newRecordingDestination()
+            let checkpoint = TranscriptCheckpoint(url: TranscriptFiles.checkpointURL(for: destination))
+            transcriptCheckpoint = checkpoint
             if let recorder = audioRecorder as? any LiveAudioRecorder,
                let transcriber = transcriber as? any LiveTranscriber {
                 // Obtain speech permission before capturing the first sample.
                 // If unavailable, still keep the full recording for recovery.
-                let session = try? await transcriber.startLiveTranscription()
+                let session = try? await transcriber.startLiveTranscription { text in
+                    // A final write is retried at Stop; keep the full audio if it fails.
+                    try? checkpoint.save(text)
+                }
                 liveTranscription = session
                 try Task.checkCancellation()
                 try await recorder.startRecording(to: destination) { buffer in
@@ -124,12 +130,17 @@ final class RecordHomeViewModel: ObservableObject {
             let recordingURL = try await audioRecorder.stopRecording()
             let session = liveTranscription
             liveTranscription = nil
-            var transcriptPath = recordingURL.path
+            var transcriptPath = TranscriptFiles.reference(for: recordingURL)
             if let session {
                 do {
                     let text = try await session.finish()
                     if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        transcriptPath = try Self.writeTranscript(text)
+                        if let checkpoint = transcriptCheckpoint {
+                            try checkpoint.save(text)
+                            transcriptPath = TranscriptFiles.reference(for: checkpoint.url)
+                        } else {
+                            transcriptPath = try Self.writeTranscript(text)
+                        }
                     }
                 } catch {
                     session.cancel()
@@ -146,7 +157,7 @@ final class RecordHomeViewModel: ObservableObject {
             )
             // Keep the audio until the complete transcript and entry are both
             // durable. Failed live recognition leaves it available for recovery.
-            if transcriptPath != recordingURL.path {
+            if TranscriptFiles.url(for: transcriptPath) != recordingURL {
                 try? FileManager.default.removeItem(at: recordingURL)
             }
             return id
@@ -216,8 +227,8 @@ final class RecordHomeViewModel: ObservableObject {
             withIntermediateDirectories: true
         )
         let url = directory.appending(path: "tangent-\(UUID().uuidString).txt")
-        try transcript.write(to: url, atomically: true, encoding: .utf8)
-        return url.path
+        try TranscriptFiles.write(transcript, to: url)
+        return TranscriptFiles.reference(for: url)
     }
 
     private func startElapsedTimer() {

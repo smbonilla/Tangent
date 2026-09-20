@@ -8,6 +8,7 @@ import Speech
 final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
     private let queue = DispatchQueue(label: "Tangent.live-speech")
     private let makeWindow: (@escaping @Sendable (SpeechRecognitionUpdate?, Error?) -> Void) -> any SpeechRecognitionWindow
+    private let onPartial: @Sendable (String) -> Void
     private let finalizationTimeout: TimeInterval
     private let windowDuration: TimeInterval
     private var request: (any SpeechRecognitionWindow)?
@@ -27,8 +28,8 @@ final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
     private var completion: CheckedContinuation<String, Error>?
     private var generation = 0
 
-    convenience init(recognizer: SFSpeechRecognizer, finalizationTimeout: TimeInterval = 15) {
-        self.init(finalizationTimeout: finalizationTimeout) { callback in
+    convenience init(recognizer: SFSpeechRecognizer, finalizationTimeout: TimeInterval = 15, onPartial: @escaping @Sendable (String) -> Void = { _ in }) {
+        self.init(finalizationTimeout: finalizationTimeout, onPartial: onPartial) { callback in
             OnDeviceSpeechWindow(recognizer: recognizer, callback: callback)
         }
     }
@@ -36,8 +37,10 @@ final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
     init(
         windowDuration: TimeInterval = 45,
         finalizationTimeout: TimeInterval = 15,
+        onPartial: @escaping @Sendable (String) -> Void = { _ in },
         makeWindow: @escaping (@escaping @Sendable (SpeechRecognitionUpdate?, Error?) -> Void) -> any SpeechRecognitionWindow
     ) {
+        self.onPartial = onPartial
         self.windowDuration = windowDuration
         self.finalizationTimeout = finalizationTimeout
         self.makeWindow = makeWindow
@@ -106,6 +109,7 @@ final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
                         text: result.text, start: result.start, end: result.end,
                         isStable: result.isStable
                     )
+                    self.onPartial(TranscriptWindowJoiner.join(self.completedText, self.accumulator.text))
                     if result.isFinal {
                         // An unsolicited final result could have ignored audio
                         // still arriving. Never publish it as a complete diary.

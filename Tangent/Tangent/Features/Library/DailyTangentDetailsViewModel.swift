@@ -91,7 +91,7 @@ final class DailyTangentDetailsViewModel: ObservableObject {
 
     func start() async {
         await load()
-        if transcript == nil, streamsTranscript || hasPendingAudio {
+        if hasPendingAudio || (transcript == nil && streamsTranscript) {
             await transcribeFreshRecording(animate: streamsTranscript)
         }
         await generateSummaryIfNeeded()
@@ -120,14 +120,15 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     }
 
     nonisolated static func loadTranscript(at path: String) -> String? {
-        guard !path.isEmpty,
-              path.lowercased().hasSuffix(".txt"),
-              let text = try? String(
-                  contentsOfFile: path,
-                  encoding: .utf8
-              ) else {
-            return nil
+        guard !path.isEmpty else { return nil }
+        let file = TranscriptFiles.url(for: path)
+        let url: URL
+        switch file.pathExtension.lowercased() {
+        case "txt": url = file
+        case "m4a", "caf", "wav": url = TranscriptFiles.checkpointURL(for: file)
+        default: return nil
         }
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         let transcript = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return transcript.isEmpty ? nil : transcript
     }
@@ -153,18 +154,13 @@ final class DailyTangentDetailsViewModel: ObservableObject {
         isTranscribing = true
         do {
             let fullText = try await transcriber.transcribe(
-                audioAt: URL(fileURLWithPath: path)
+                audioAt: TranscriptFiles.url(for: path)
             )
-            if animate {
-                await reveal(fullText)
-            } else {
-                transcript = fullText
-            }
+            // Commit text and the diary reference before any reveal or navigation.
             try await persist(fullText)
+            if animate { await reveal(fullText) }
         } catch {
-            if transcript == nil {
-                loadError = error.localizedDescription
-            }
+            loadError = error.localizedDescription
         }
         isTranscribing = false
     }
@@ -184,11 +180,16 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     /// Stores the transcript and points the entry at it. The summary stays
     /// empty until the model has written it.
     private func persist(_ transcript: String) async throws {
-        guard var entry else { return }
-        entry.transcriptPath = try writeTranscriptFile(transcript, replacing: entry.transcriptPath)
+        guard var entry = try await noteStore.diaryEntry(id: diaryID) else { return }
+        let oldPath = entry.transcriptPath
+        entry.transcriptPath = try writeTranscriptFile(transcript, replacing: oldPath)
         try await noteStore.saveDiaryEntry(entry)
         self.entry = entry
         self.transcript = transcript
+        // Audio remains recoverable until both the text and its reference are saved.
+        if !oldPath.lowercased().hasSuffix(".txt"), !oldPath.isEmpty {
+            try? FileManager.default.removeItem(at: TranscriptFiles.url(for: oldPath))
+        }
     }
 
     /// Writes a user edit of the visible summary and/or transcript. Empty
@@ -224,20 +225,18 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     }
 
     private func writeTranscriptFile(_ transcript: String, replacing path: String) throws -> String {
-        let url = URL(fileURLWithPath: path)
-        if path.lowercased().hasSuffix(".txt"), FileManager.default.fileExists(atPath: path) {
-            try transcript.write(to: url, atomically: true, encoding: .utf8)
-            return path
+        let url: URL
+        if path.lowercased().hasSuffix(".txt") {
+            url = TranscriptFiles.url(for: path)
+        } else {
+            url = TranscriptFiles.checkpointURL(for: TranscriptFiles.url(for: path))
         }
-        let storedPath = try RecordHomeViewModel.writeTranscript(transcript)
-        if !path.isEmpty, path != storedPath {
-            try? FileManager.default.removeItem(at: url)
-        }
-        return storedPath
+        try TranscriptFiles.write(transcript, to: url)
+        return TranscriptFiles.reference(for: url)
     }
 
     private func generateSummaryIfNeeded() async {
-        guard !isGenerating,
+        guard !isGenerating, !hasPendingAudio,
               let transcript = usableTranscript,
               let profile = try? await noteStore.userProfiles().first
         else {
@@ -272,7 +271,7 @@ final class DailyTangentDetailsViewModel: ObservableObject {
             )
 
             try Task.checkCancellation()
-            var updated = entry
+            guard var updated = try await noteStore.diaryEntry(id: entry.id) else { return }
             updated.summaryShort = short.text
             updated.promptText = short.promptText
             try await noteStore.saveDiaryEntry(updated)

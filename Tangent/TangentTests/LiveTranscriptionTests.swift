@@ -88,6 +88,26 @@ struct LiveTranscriptionTests {
     }
 
     @Test
+    func speechUpdatesCheckpointAllUtterancesBeforeStop() async throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "checkpoint-\(UUID()).txt")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let checkpoint = TranscriptCheckpoint(url: url)
+        let factory = TestSpeechFactory(texts: [""], behavior: .neverFinishes)
+        let session = LiveSpeechSession(onPartial: { try? checkpoint.save($0) }, makeWindow: factory.make)
+        session.append(try Self.buffer())
+        let window = try #require(factory.windows.first)
+        window.callback(SpeechRecognitionUpdate(text: "Earlier thoughts.", start: 0, end: 1, isStable: true, isFinal: false), nil)
+        session.append(try Self.buffer()) // Flush the recognition queue.
+        #expect(try String(contentsOf: url, encoding: .utf8) == "Earlier thoughts.")
+        window.callback(SpeechRecognitionUpdate(text: "Later thoughts.", start: 2, end: 3, isStable: true, isFinal: false), nil)
+        session.append(try Self.buffer())
+        #expect(try String(contentsOf: url, encoding: .utf8) == "Earlier thoughts. Later thoughts.")
+        session.cancel()
+        await #expect(throws: CancellationError.self) { try await session.finish() }
+        #expect(try String(contentsOf: url, encoding: .utf8) == "Earlier thoughts. Later thoughts.")
+    }
+
+    @Test
     func pendingAudioIsBoundedWhenRecognitionFallsBehind() async throws {
         let factory = TestSpeechFactory(texts: [""], behavior: .neverFinishes)
         let session = LiveSpeechSession(makeWindow: factory.make)
@@ -116,22 +136,31 @@ struct LiveTranscriptionTests {
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
         try await store.saveUserProfile(UserProfile(name: "Alex"))
         let model = RecordHomeViewModel(audioRecorder: recorder, transcriber: transcriber, noteStore: store)
+        let pastDay = Calendar.current.startOfDay(for: Date().addingTimeInterval(-86400 * 3))
+        model.entryDay = pastDay
         let beforeStart = Date()
         await model.startRecording()
         let afterStart = Date()
         #expect(model.isRecording)
         #expect(factory.windows.first?.frames == 1000)
+        transcriber.onPartial?("Beginning middle")
+        let checkpoint = TranscriptFiles.checkpointURL(for: try #require(recorder.url))
+        #expect(try String(contentsOf: checkpoint, encoding: .utf8) == "Beginning middle")
         let id = try #require(await model.stopRecording())
         let entry = try #require(await store.diaryEntry(id: id))
         defer {
-            try? FileManager.default.removeItem(atPath: entry.transcriptPath)
+            try? FileManager.default.removeItem(at: TranscriptFiles.url(for: entry.transcriptPath))
             if let url = recorder.url { try? FileManager.default.removeItem(at: url) }
         }
         let startedAt = try #require(entry.recordingStartedAt)
         #expect(startedAt >= beforeStart && startedAt <= afterStart)
         #expect(entry.transcriptPath.hasSuffix(".txt"))
-        #expect(try String(contentsOfFile: entry.transcriptPath, encoding: .utf8) == "Beginning middle and end.")
+        #expect(try String(contentsOf: TranscriptFiles.url(for: entry.transcriptPath), encoding: .utf8) == "Beginning middle and end.")
         #expect(transcriber.fileRequests == 0)
+        let reopened = DailyTangentDetailsViewModel(noteStore: store, diaryID: id)
+        await reopened.start()
+        #expect(reopened.entry?.day == pastDay)
+        #expect(reopened.transcript == "Beginning middle and end.")
         #expect(!FileManager.default.fileExists(atPath: try #require(recorder.url).path))
     }
 
@@ -147,9 +176,9 @@ struct LiveTranscriptionTests {
         await model.startRecording()
         let id = try #require(await model.stopRecording())
         let entry = try #require(await store.diaryEntry(id: id))
-        defer { try? FileManager.default.removeItem(atPath: entry.transcriptPath) }
-        #expect(entry.transcriptPath == recorder.url?.path)
-        #expect(FileManager.default.fileExists(atPath: entry.transcriptPath))
+        defer { try? FileManager.default.removeItem(at: TranscriptFiles.url(for: entry.transcriptPath)) }
+        #expect(TranscriptFiles.url(for: entry.transcriptPath) == recorder.url)
+        #expect(FileManager.default.fileExists(atPath: TranscriptFiles.url(for: entry.transcriptPath).path))
         #expect(!entry.transcriptPath.hasSuffix(".txt"))
     }
 
@@ -230,8 +259,12 @@ private final class TestLiveRecorder: LiveAudioRecorder {
 private final class TestLiveTranscriber: LiveTranscriber {
     let session: any LiveTranscriptionSession
     var fileRequests = 0
+    var onPartial: (@Sendable (String) -> Void)?
     init(session: any LiveTranscriptionSession) { self.session = session }
-    func startLiveTranscription() async throws -> any LiveTranscriptionSession { session }
+    func startLiveTranscription(onPartial: @escaping @Sendable (String) -> Void) async throws -> any LiveTranscriptionSession {
+        self.onPartial = onPartial
+        return session
+    }
     func transcribe(audioAt url: URL) async throws -> String { fileRequests += 1; return "Recovered full audio" }
     func transcribeStreaming(audioAt url: URL) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { $0.finish() }
