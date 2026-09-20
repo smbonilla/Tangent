@@ -129,13 +129,22 @@ final class RecordHomeViewModel: ObservableObject {
     func saveEntry(
         day: Date,
         transcriptPath: String,
-        questions: [DiaryQuestion]
+        questions: [DiaryQuestion],
+        calendar: Calendar = .autoupdatingCurrent
     ) async throws -> UUID {
         guard let user = try await noteStore.userProfiles().first else {
             throw RecordPersistenceError.missingProfile
         }
 
+        let existing = try await noteStore.diaryEntries(profileID: user.id)
+            .filter { calendar.isDate($0.day, inSameDayAs: day) }
+        let id = existing.first?.id ?? UUID()
+        for old in existing where old.id != id {
+            try await noteStore.deleteDiaryEntry(id: old.id)
+        }
+
         let entry = DiaryEntry(
+            id: id,
             profileID: user.id,
             day: day,
             questions: questions,

@@ -253,6 +253,40 @@ struct TangentTests {
     }
 
     @Test @MainActor
+    func recordingOverwritesAnExistingEntryOnTheSameDay() async throws {
+        let container = try TangentModelContainer.make(inMemory: true)
+        let store = SwiftDataNoteStore(modelContext: container.mainContext)
+        let user = UserProfile(name: "Taylor")
+        try await store.saveUserProfile(user)
+        let recorder = RecordHomeViewModel(
+            audioRecorder: UnavailableAudioRecorder(),
+            transcriber: UnavailableTranscriber(),
+            noteStore: store
+        )
+        let pastDay = try #require(
+            testCalendar.date(from: DateComponents(year: 2026, month: 9, day: 12))
+        )
+        let firstPath = try RecordHomeViewModel.writeTranscript("First take.")
+        let secondPath = try RecordHomeViewModel.writeTranscript("Second take.")
+        defer {
+            try? FileManager.default.removeItem(atPath: firstPath)
+            try? FileManager.default.removeItem(atPath: secondPath)
+        }
+
+        let firstID = try await recorder.saveEntry(
+            day: pastDay, transcriptPath: firstPath, questions: [], calendar: testCalendar
+        )
+        let secondID = try await recorder.saveEntry(
+            day: pastDay, transcriptPath: secondPath, questions: [], calendar: testCalendar
+        )
+        let saved = try #require(await store.diaryEntry(id: secondID))
+        #expect(firstID == secondID)
+        #expect(saved.transcriptPath == secondPath)
+        #expect(saved.summaryShort.isEmpty)
+        #expect(try await store.diaryEntries(profileID: user.id).count == 1)
+    }
+
+    @Test @MainActor
     func insightsGenerationUsesAModelSpecificLookback() async throws {
         let container = try TangentModelContainer.make(inMemory: true)
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
