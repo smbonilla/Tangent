@@ -5,6 +5,7 @@ struct DiaryHomeView: View {
     @StateObject private var model: DiaryHomeViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsAddRecordOptions = false
+    @State private var showsPastDateCalendar = false
 
     private let calendar: Calendar
     private let openEntry: (UUID) -> Void
@@ -98,32 +99,47 @@ struct DiaryHomeView: View {
     private var addRecordButton: some View {
         Group {
             if model.days.contains(where: { calendar.isDateInToday($0.date) && !$0.entries.isEmpty }) {
-                Button { showsAddRecordOptions = true } label: { addRecordIcon }
+                Button {
+                    showsPastDateCalendar = false
+                    showsAddRecordOptions = true
+                } label: { addRecordIcon }
                     .accessibilityLabel("Add a tangent")
                     .popover(isPresented: $showsAddRecordOptions) {
-                        VStack(spacing: 0) {
-                            Button("Record for today") {
-                                showsAddRecordOptions = false
-                                openRecord()
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            Divider()
-                            pastDatePicker
-                                .frame(maxWidth: .infinity, minHeight: 44)
-                                .overlay {
-                                    Color(uiColor: .systemBackground).allowsHitTesting(false)
-                                    Text("Record for a past day")
-                                        .foregroundStyle(Color.tangentPurple)
-                                        .lineLimit(1)
-                                        .allowsHitTesting(false)
+                        Group {
+                            if showsPastDateCalendar {
+                                pastDatePicker
+                                    .datePickerStyle(.graphical)
+                                    .frame(width: 320)
+                            } else {
+                                VStack(spacing: 0) {
+                                    Button {
+                                        showsAddRecordOptions = false
+                                        openRecord()
+                                    } label: {
+                                        Text("Record for today")
+                                            .frame(maxWidth: .infinity, minHeight: 44)
+                                            .contentShape(Rectangle())
+                                    }
+                                    Divider()
+                                    Button {
+                                        showsPastDateCalendar = true
+                                    } label: {
+                                        Text("Record for a past day")
+                                            .frame(maxWidth: .infinity, minHeight: 44)
+                                            .contentShape(Rectangle())
+                                    }
                                 }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(Color.tangentPurple)
+                                .frame(width: 240)
+                            }
                         }
-                        .frame(width: 240)
                         .padding(8)
                         .presentationCompactAdaptation(.popover)
                     }
             } else {
                 pastDatePicker
+                    .datePickerStyle(.compact)
                     .frame(width: 48, height: 48)
                     .clipped()
                     .overlay {
@@ -151,7 +167,6 @@ struct DiaryHomeView: View {
             in: ...Date(),
             displayedComponents: .date
         )
-        .datePickerStyle(.compact)
         .labelsHidden()
         .accessibilityIdentifier("past-record-picker")
     }

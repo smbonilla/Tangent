@@ -49,7 +49,11 @@ final class TangentUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
         app.buttons["diary-home-logo"].tap()
         app.buttons["add-record"].tap()
-        app.datePickers.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let options = XCTAttachment(screenshot: app.screenshot())
+        options.name = "Matching recording option rows"
+        options.lifetime = .keepAlways
+        add(options)
+        app.buttons["Record for a past day"].tap()
         let calendarPicker = app.datePickers.containing(.button, identifier: "DatePicker.PreviousMonth").firstMatch
         XCTAssertTrue(calendarPicker.waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["record-selected-day"].exists)
