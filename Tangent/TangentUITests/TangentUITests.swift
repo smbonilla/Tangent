@@ -145,17 +145,14 @@ final class TangentUITests: XCTestCase {
         let name = app.textFields["profile-name"]
         name.tap()
         name.typeText("Alex")
-        app.buttons["Done"].tap()
         let interests = app.descendants(matching: .any).matching(identifier: "profile-interests").firstMatch
         for _ in 0..<5 where !interests.exists || !interests.isHittable { app.swipeUp() }
         interests.tap()
         app.typeText("Drawing")
-        app.buttons["Done"].tap()
         let concerns = app.descendants(matching: .any).matching(identifier: "profile-concerns").firstMatch
         for _ in 0..<5 where !concerns.exists || !concerns.isHittable { app.swipeUp() }
         concerns.tap()
         app.typeText("Finding time")
-        app.buttons["Done"].tap()
         app.buttons["complete-onboarding"].tap()
         XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 3))
         app.buttons["Settings"].tap()

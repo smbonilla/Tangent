@@ -54,8 +54,13 @@ struct OnboardingView: View {
                     .padding(20)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: layout.size.height, alignment: .top)
+                    .background {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { focusedField = nil }
+                    }
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .scrollDismissesKeyboard(.immediately)
             }
             .background {
                 GeometryReader { proxy in
@@ -98,13 +103,6 @@ struct OnboardingView: View {
                 }
                 .padding(20)
                 .background(Color.tangentWash)
-            }
-
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { focusedField = nil }
-                }
             }
             .task {
                 await model.load()
