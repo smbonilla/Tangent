@@ -95,11 +95,9 @@ final class TangentUITests: XCTestCase {
         let settingsButton = app.buttons["Settings"]
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 3))
         settingsButton.tap()
-        XCTAssertTrue(
-            app.navigationBars["Settings"].waitForExistence(timeout: 2)
-        )
+        XCTAssertTrue(app.textFields["profile-name"].waitForExistence(timeout: 2))
 
-        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
 
         let recordTodayButton = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Record today’s Tangent")).firstMatch
         XCTAssertTrue(recordTodayButton.waitForExistence(timeout: 2))
@@ -110,7 +108,7 @@ final class TangentUITests: XCTestCase {
 
         app.tabBars.buttons["Insights"].tap()
         XCTAssertTrue(
-            app.navigationBars["Insights"].waitForExistence(timeout: 2)
+            app.buttons["generate-insight"].waitForExistence(timeout: 2)
         )
     }
 
@@ -128,7 +126,7 @@ final class TangentUITests: XCTestCase {
         interests.tap()
         interests.typeText("Creative writing")
         XCTAssertFalse(app.buttons["save-profile"].exists)
-        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
         app.buttons["Settings"].tap()
         XCTAssertTrue(interests.waitForExistence(timeout: 3))
         XCTAssertEqual(interests.value as? String, "Creative writing")
@@ -173,7 +171,7 @@ final class TangentUITests: XCTestCase {
         XCTAssertEqual(settingsAI.value as? String, "0")
         settingsAI.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertTrue(app.staticTexts["AI summaries will stay off until a model is downloaded"].exists)
-        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
         app.buttons["Settings"].tap()
         for _ in 0..<5 where !settingsAI.isHittable { app.swipeUp() }
         XCTAssertEqual(settingsAI.value as? String, "0")
@@ -229,13 +227,13 @@ final class TangentUITests: XCTestCase {
         XCTAssertTrue(app.buttons["model-qwen3-0.6b-4bit"].waitForExistence(timeout: 2))
         ai.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertFalse(app.buttons["model-qwen3-0.6b-4bit"].exists)
-        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
         app.tabBars.buttons["Insights"].tap()
         XCTAssertFalse(app.buttons["generate-insight"].isEnabled)
         XCTAssertTrue(app.buttons["Download model in Settings for this functionality."].exists)
         app.buttons["Download model in Settings for this functionality."].tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
-        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.textFields["profile-name"].waitForExistence(timeout: 3))
+        app.navigationBars.buttons.firstMatch.tap()
         let insightsScreenshot = XCTAttachment(screenshot: app.screenshot())
         insightsScreenshot.name = "Insights with AI off"
         insightsScreenshot.lifetime = .keepAlways

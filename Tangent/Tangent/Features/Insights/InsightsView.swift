@@ -28,7 +28,6 @@ struct InsightsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(Color.tangentInk)
         .background(Color.tangentWash)
-        .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
