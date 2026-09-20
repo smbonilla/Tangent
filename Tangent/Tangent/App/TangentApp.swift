@@ -96,8 +96,15 @@ struct TangentApp: App {
             .environmentObject(preferences)
             // Keep forms and presented screens consistent with Tangent's light palette.
             .preferredColorScheme(.light)
-            .task(id: scenePhase) {
-                guard scenePhase == .active, preferences.aiEnabled else { return }
+            .task(id: "\(preferences.onboardingCompleted)-\(scenePhase)") {
+                guard scenePhase == .active else { return }
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--ui-testing") { return }
+                #endif
+                if preferences.onboardingCompleted {
+                    await RecordingPermissions.requestIfNeeded()
+                }
+                guard preferences.aiEnabled else { return }
                 let selected = dependencies.modelCatalog.selectedModel
                 let state = await dependencies.modelCatalog.state(of: selected)
                 if selected == dependencies.modelCatalog.selectedModel && !state.isReady {
