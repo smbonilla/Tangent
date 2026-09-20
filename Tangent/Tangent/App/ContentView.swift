@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var selectedTab = PrimaryTab.diary
     @State private var diaryPath: [DiaryRoute] = []
     @State private var recordPath: [RecordRoute] = []
+    @State private var recordingDay: Date?
     @State private var coversRecordTransition = false
 
     init(dependencies: AppDependencies) {
@@ -21,7 +22,8 @@ struct ContentView: View {
                     noteStore: dependencies.noteStore,
                     modelCatalog: dependencies.modelCatalog,
                     openEntry: { diaryPath.append(.details($0)) },
-                    openRecord: { selectedTab = .record },
+                    openRecord: { startRecording(on: nil) },
+                    openEmptyDay: { diaryPath.append(.emptyDay($0)) },
                     openSettings: { diaryPath.append(.settings) },
                     openDiary: showDiary
                 )
@@ -34,7 +36,7 @@ struct ContentView: View {
                             transcriber: dependencies.transcriber,
                             languageModel: dependencies.languageModel,
                             diaryID: diaryID,
-                            redoToday: startNewRecording,
+                            redoToday: { startRecording(on: nil) },
                             openSettings: { diaryPath.append(.settings) }
                         )
                     case .freshRecording(let diaryID):
@@ -44,9 +46,13 @@ struct ContentView: View {
                             languageModel: dependencies.languageModel,
                             diaryID: diaryID,
                             streamsTranscript: true,
-                            redoToday: startNewRecording,
+                            redoToday: { startRecording(on: nil) },
                             openSettings: { diaryPath.append(.settings) }
                         )
+                    case .emptyDay(let date):
+                        EmptyDayDetailsView(date: date) {
+                            startRecording(on: date)
+                        }
                     case .settings:
                         SettingsView(
                             noteStore: dependencies.noteStore,
@@ -70,6 +76,7 @@ struct ContentView: View {
                     transcriber: dependencies.transcriber,
                     noteStore: dependencies.noteStore,
                     languageModel: dependencies.languageModel,
+                    entryDay: recordingDay,
                     openSettings: { recordPath.append(.settings) },
                     onRecordingFinished: showDailySummary(for:),
                     isActive: selectedTab == .record
@@ -122,6 +129,11 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: coversRecordTransition)
         .animation(.easeInOut(duration: 0.25), value: selectedTab)
+        .onChange(of: selectedTab) { _, tab in
+            if tab != .record {
+                recordingDay = nil
+            }
+        }
     }
 
     private func showDailySummary(for diaryID: UUID) {
@@ -139,10 +151,12 @@ struct ContentView: View {
     private func showDiary() {
         diaryPath = []
         recordPath = []
+        recordingDay = nil
         selectedTab = .diary
     }
 
-    private func startNewRecording() {
+    private func startRecording(on day: Date?) {
+        recordingDay = day
         diaryPath = []
         recordPath = []
         selectedTab = .record
@@ -178,6 +192,7 @@ private enum PrimaryTab: Hashable {
 private enum DiaryRoute: Hashable {
     case details(UUID)
     case freshRecording(UUID)
+    case emptyDay(Date)
     case settings
 }
 

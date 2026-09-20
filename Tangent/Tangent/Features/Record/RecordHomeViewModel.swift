@@ -18,6 +18,7 @@ final class RecordHomeViewModel: ObservableObject {
     private let transcriber: any Transcriber
     private let noteStore: any NoteStore
     private let languageModel: (any DiaryLanguageModel)?
+    var entryDay: Date?
     private var elapsedTask: Task<Void, Never>?
     private var questionTask: Task<Void, Never>?
     private var suggestionOfferTask: Task<Void, Never>?
@@ -85,8 +86,9 @@ final class RecordHomeViewModel: ObservableObject {
         }
     }
 
-    /// Stops the recording, saves today's diary entry, and returns its id.
-    /// The record screen returns to idle immediately so no transcribing UI is shown.
+    /// Stops the recording, saves the diary entry for `entryDay` (or now),
+    /// and returns its id. The record screen returns to idle immediately so no
+    /// transcribing UI is shown.
     func stopRecording() async -> UUID? {
         guard phase == .recording, !isFinishing else { return nil }
         isFinishing = true
@@ -98,7 +100,8 @@ final class RecordHomeViewModel: ObservableObject {
 
         do {
             let recordingURL = try await audioRecorder.stopRecording()
-            return try await saveTodayEntry(
+            return try await saveEntry(
+                day: entryDay ?? Date(),
                 transcriptPath: recordingURL.path,
                 questions: promptedQuestions
             )
@@ -123,7 +126,8 @@ final class RecordHomeViewModel: ObservableObject {
     /// Saves the entry with the audio path and the questions the user was
     /// actually shown. The transcript and short summary are filled in on the
     /// daily details screen.
-    private func saveTodayEntry(
+    func saveEntry(
+        day: Date,
         transcriptPath: String,
         questions: [DiaryQuestion]
     ) async throws -> UUID {
@@ -133,7 +137,7 @@ final class RecordHomeViewModel: ObservableObject {
 
         let entry = DiaryEntry(
             profileID: user.id,
-            day: Date(),
+            day: day,
             questions: questions,
             promptText: "Daily Tangent recorded and transcribed on device",
             transcriptPath: transcriptPath
@@ -244,6 +248,6 @@ private enum RecordPersistenceError: LocalizedError {
     case missingProfile
 
     var errorDescription: String? {
-        "Your profile is needed to save today’s Tangent."
+        "Your profile is needed to save this Tangent."
     }
 }

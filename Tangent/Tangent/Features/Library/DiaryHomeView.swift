@@ -8,6 +8,7 @@ struct DiaryHomeView: View {
     private let calendar: Calendar
     private let openEntry: (UUID) -> Void
     private let openRecord: () -> Void
+    private let openEmptyDay: (Date) -> Void
     private let openSettings: () -> Void
     private let openDiary: () -> Void
 
@@ -17,6 +18,7 @@ struct DiaryHomeView: View {
         calendar: Calendar = .autoupdatingCurrent,
         openEntry: @escaping (UUID) -> Void,
         openRecord: @escaping () -> Void,
+        openEmptyDay: @escaping (Date) -> Void,
         openSettings: @escaping () -> Void,
         openDiary: @escaping () -> Void
     ) {
@@ -30,6 +32,7 @@ struct DiaryHomeView: View {
         self.calendar = calendar
         self.openEntry = openEntry
         self.openRecord = openRecord
+        self.openEmptyDay = openEmptyDay
         self.openSettings = openSettings
         self.openDiary = openDiary
     }
@@ -121,13 +124,16 @@ struct DiaryHomeView: View {
         } else if calendar.isDateInToday(day.date) {
             todayRecordCard(on: day.date)
         } else {
-            dayCard(on: day.date, chrome: .empty, action: nil) {
-                Color.clear
+            dayCard(on: day.date, chrome: .empty, action: { openEmptyDay(day.date) }) {
+                Text("Fill in Tangent")
+                    .font(.system(.body, design: .serif, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 46)
-                    .accessibilityHidden(true)
             }
-            .accessibilityLabel(fullDate(day.date))
+            .accessibilityLabel("\(fullDate(day.date)). Fill in Tangent")
+            .accessibilityHint("Opens this day so you can add a Tangent")
         }
     }
 

@@ -8,6 +8,7 @@ struct RecordHomeView: View {
 
     private let openSettings: () -> Void
     private let onRecordingFinished: (UUID) -> Void
+    private let entryDay: Date?
 
     /// Delay before "Tap to record" fades in. Overridable for previews.
     private let instructionDelay: TimeInterval
@@ -24,6 +25,7 @@ struct RecordHomeView: View {
         transcriber: any Transcriber,
         noteStore: any NoteStore,
         languageModel: (any DiaryLanguageModel)? = nil,
+        entryDay: Date? = nil,
         openSettings: @escaping () -> Void,
         onRecordingFinished: @escaping (UUID) -> Void,
         instructionDelay: TimeInterval = 3,
@@ -40,6 +42,7 @@ struct RecordHomeView: View {
         )
         self.openSettings = openSettings
         self.onRecordingFinished = onRecordingFinished
+        self.entryDay = entryDay
         self.instructionDelay = instructionDelay
         self.forcesReducedMotion = forcesReducedMotion
         self.isActive = isActive
@@ -83,7 +86,11 @@ struct RecordHomeView: View {
                 SettingsToolbarButton(action: openSettings)
             }
         }
+        .onChange(of: entryDay) { _, day in
+            model.entryDay = day
+        }
         .task(id: isActive) {
+            model.entryDay = entryDay
             guard isActive else {
                 showsInstruction = false
                 return

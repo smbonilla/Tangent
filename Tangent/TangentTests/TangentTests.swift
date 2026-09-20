@@ -229,6 +229,30 @@ struct TangentTests {
     }
 
     @Test @MainActor
+    func recordingCanSaveAnEntryForAPastDay() async throws {
+        let container = try TangentModelContainer.make(inMemory: true)
+        let store = SwiftDataNoteStore(modelContext: container.mainContext)
+        let user = UserProfile(name: "Taylor")
+        try await store.saveUserProfile(user)
+        let recorder = RecordHomeViewModel(
+            audioRecorder: UnavailableAudioRecorder(),
+            transcriber: UnavailableTranscriber(),
+            noteStore: store
+        )
+        let pastDay = try #require(
+            testCalendar.date(from: DateComponents(year: 2026, month: 9, day: 12))
+        )
+        let path = try RecordHomeViewModel.writeTranscript("A quieter day.")
+        defer { try? FileManager.default.removeItem(atPath: path) }
+
+        let id = try await recorder.saveEntry(day: pastDay, transcriptPath: path, questions: [])
+        let saved = try #require(await store.diaryEntry(id: id))
+        #expect(testCalendar.isDate(saved.day, inSameDayAs: pastDay))
+        #expect(saved.transcriptPath == path)
+        #expect(try await store.diaryEntries(profileID: user.id).count == 1)
+    }
+
+    @Test @MainActor
     func insightsGenerationUsesAModelSpecificLookback() async throws {
         let container = try TangentModelContainer.make(inMemory: true)
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
@@ -527,6 +551,41 @@ struct TangentTests {
         #expect(saved.summaryShort == "I had a steady day.")
         #expect(saved.promptText == "short prompt")
         #expect(details.summaryDisplay == .written(saved.summaryShort))
+    }
+
+    @Test @MainActor
+    func dailyDetailsSavesEditedSummaryAndTranscript() async throws {
+        let container = try TangentModelContainer.make(inMemory: true)
+        let store = SwiftDataNoteStore(modelContext: container.mainContext)
+        let user = UserProfile(name: "Taylor")
+        try await store.saveUserProfile(user)
+        let transcript = FileManager.default.temporaryDirectory.appending(path: "\(UUID()).txt")
+        defer { try? FileManager.default.removeItem(at: transcript) }
+        try "Original spoken notes.".write(to: transcript, atomically: true, encoding: .utf8)
+        let entry = DiaryEntry(
+            profileID: user.id,
+            day: Date(),
+            promptText: "kept prompt",
+            summaryShort: "Original summary.",
+            transcriptPath: transcript.path
+        )
+        try await store.saveDiaryEntry(entry)
+        let details = DailyTangentDetailsViewModel(noteStore: store, diaryID: entry.id)
+        await details.load()
+
+        await details.saveEdits(summary: "  I rewrote the day.  ", transcript: "  Edited transcript.  ")
+        let saved = try #require(await store.diaryEntry(id: entry.id))
+        #expect(saved.summaryShort == "I rewrote the day.")
+        #expect(saved.promptText == "kept prompt")
+        #expect(saved.transcriptPath == transcript.path)
+        #expect(try String(contentsOfFile: saved.transcriptPath, encoding: .utf8) == "Edited transcript.")
+        #expect(details.transcript == "Edited transcript.")
+        #expect(details.summaryDisplay == .written("I rewrote the day."))
+
+        await details.saveEdits(summary: nil, transcript: "Transcript only.")
+        let transcriptOnly = try #require(await store.diaryEntry(id: entry.id))
+        #expect(transcriptOnly.summaryShort == "I rewrote the day.")
+        #expect(details.transcript == "Transcript only.")
     }
 
     @Test @MainActor
