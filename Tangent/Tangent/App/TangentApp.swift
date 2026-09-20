@@ -90,6 +90,8 @@ struct TangentApp: App {
                 }
             }
             .environmentObject(preferences)
+            // Keep forms and presented screens consistent with Tangent's light palette.
+            .preferredColorScheme(.light)
         }
         .modelContainer(modelContainer)
     }
