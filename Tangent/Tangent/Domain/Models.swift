@@ -3,34 +3,21 @@ import Foundation
 struct UserProfile: Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
-    // Retained for existing profiles; not shown in Settings or included in model prompts.
-    var age: Int?
-    var weight: Double?
-    var gender: String
     var interests: [String]
     var concerns: [String]
-    var email: String
     var dailyReminder: Date?
 
     init(
         id: UUID = UUID(),
         name: String,
-        age: Int? = nil,
-        weight: Double? = nil,
-        gender: String = "",
         interests: [String] = [],
         concerns: [String] = [],
-        email: String = "",
         dailyReminder: Date? = nil
     ) {
         self.id = id
         self.name = name
-        self.age = age
-        self.weight = weight
-        self.gender = gender
         self.interests = interests
         self.concerns = concerns
-        self.email = email
         self.dailyReminder = dailyReminder
     }
 }

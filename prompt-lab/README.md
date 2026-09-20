@@ -35,9 +35,8 @@ summaries, 400 for insights, a single user message, and plain-text output.
 Daily results are stored under `prompt-lab/output/daily/` as complete
 `DiaryEntry` records with `promptText` and `summaryShort` updated, just as the
 app saves them. Insight results are complete `Insight` records. The fake profile
-uses the prompt-relevant `UserProfile` fields plus current settings fields,
-while diary entries use the complete `DiaryEntry` schema. Legacy profile fields
-that are not used by prompts are deliberately omitted.
+matches the app `UserProfile` fields: name, interests, concerns, and reminder.
+Diary entries use the complete `DiaryEntry` schema.
 
 Ollama and MLX may tokenize or quantize a model differently. Use this harness
 for quick prompt comparisons, then confirm a chosen prompt in the iOS app.

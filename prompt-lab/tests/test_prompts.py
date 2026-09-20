@@ -17,7 +17,7 @@ from prompt_lab.cli import generated_entry, generated_insight
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
 PROFILE_FIELDS = {
-    "id", "name", "interests", "concerns", "email", "dailyReminder"
+    "id", "name", "interests", "concerns", "dailyReminder"
 }
 ENTRY_FIELDS = {
     "id", "profileID", "day", "questions", "promptText", "summaryShort", "transcriptPath"

@@ -5,12 +5,8 @@ import SwiftData
 final class UserProfileRecord {
     @Attribute(.unique) var id: UUID
     var name: String
-    var age: Int?
-    var weight: Double?
-    var gender: String
     private var interestsData: Data?
     private var concernsData: Data?
-    var email: String
     var dailyReminder: Date?
 
     var interests: [String] {
@@ -26,23 +22,15 @@ final class UserProfileRecord {
     init(profile: UserProfile) {
         id = profile.id
         name = profile.name
-        age = profile.age
-        weight = profile.weight
-        gender = profile.gender
         interestsData = StringArrayStorage.encode(profile.interests)
         concernsData = StringArrayStorage.encode(profile.concerns)
-        email = profile.email
         dailyReminder = profile.dailyReminder
     }
 
     func update(from profile: UserProfile) {
         name = profile.name
-        age = profile.age
-        weight = profile.weight
-        gender = profile.gender
         interests = profile.interests
         concerns = profile.concerns
-        email = profile.email
         dailyReminder = profile.dailyReminder
     }
 
@@ -50,12 +38,8 @@ final class UserProfileRecord {
         UserProfile(
             id: id,
             name: name,
-            age: age,
-            weight: weight,
-            gender: gender,
             interests: interests,
             concerns: concerns,
-            email: email,
             dailyReminder: dailyReminder
         )
     }

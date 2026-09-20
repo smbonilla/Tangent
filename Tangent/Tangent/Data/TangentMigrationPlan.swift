@@ -34,23 +34,19 @@ enum TangentSchemaV1: VersionedSchema {
         init(profile: UserProfile) {
             id = profile.id
             name = profile.name
-            age = profile.age
-            weight = profile.weight
-            gender = profile.gender
+            age = nil
+            weight = nil
+            gender = ""
             interestsData = StringArrayStorage.encode(profile.interests)
             concernsData = StringArrayStorage.encode(profile.concerns)
-            email = profile.email
+            email = ""
             dailyReminder = profile.dailyReminder
         }
 
         func update(from profile: UserProfile) {
             name = profile.name
-            age = profile.age
-            weight = profile.weight
-            gender = profile.gender
             interests = profile.interests
             concerns = profile.concerns
-            email = profile.email
             dailyReminder = profile.dailyReminder
         }
 
@@ -58,12 +54,8 @@ enum TangentSchemaV1: VersionedSchema {
             UserProfile(
                 id: id,
                 name: name,
-                age: age,
-                weight: weight,
-                gender: gender,
                 interests: interests,
                 concerns: concerns,
-                email: email,
                 dailyReminder: dailyReminder
             )
         }
@@ -241,6 +233,14 @@ enum TangentSchemaV0: VersionedSchema {
 enum TangentSchemaV3: VersionedSchema {
     static var versionIdentifier = Schema.Version(3, 0, 0)
     static var models: [any PersistentModel.Type] {
+        [TangentSchemaV1.UserProfileRecord.self, PromptRecord.self, QuestionRecord.self,
+         DiaryEntryRecord.self, InsightRecord.self]
+    }
+}
+
+enum TangentSchemaV4: VersionedSchema {
+    static var versionIdentifier = Schema.Version(4, 0, 0)
+    static var models: [any PersistentModel.Type] {
         [UserProfileRecord.self, PromptRecord.self, QuestionRecord.self,
          DiaryEntryRecord.self, InsightRecord.self]
     }
@@ -248,12 +248,13 @@ enum TangentSchemaV3: VersionedSchema {
 
 enum TangentMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [TangentSchemaV0.self, TangentSchemaV3.self]
+        [TangentSchemaV0.self, TangentSchemaV3.self, TangentSchemaV4.self]
     }
 
     static var stages: [MigrationStage] {
         [
-            .lightweight(fromVersion: TangentSchemaV0.self, toVersion: TangentSchemaV3.self)
+            .lightweight(fromVersion: TangentSchemaV0.self, toVersion: TangentSchemaV3.self),
+            .lightweight(fromVersion: TangentSchemaV3.self, toVersion: TangentSchemaV4.self),
         ]
     }
 }

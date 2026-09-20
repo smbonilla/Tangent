@@ -331,12 +331,8 @@ struct TangentTests {
     func promptTemplateFillsBothPlaceholders() {
         let profile = UserProfile(
             name: "Taylor",
-            age: 29,
-            weight: 68,
-            gender: "Non-binary",
             interests: ["Painting", "Guitar"],
-            concerns: ["Finding time"],
-            email: "taylor@example.com"
+            concerns: ["Finding time"]
         )
 
         let filled = PromptTemplate.dailyShortSummary.filled(
@@ -347,11 +343,10 @@ struct TangentTests {
         #expect(!filled.contains(PromptTemplate.transcriptPlaceholder))
         #expect(!filled.contains(PromptTemplate.profilePlaceholder))
         #expect(filled.contains("TRANSCRIPT: I left my draft unfinished."))
-        #expect(!filled.contains("Age: 29"))
-        #expect(!filled.contains("Weight: 68 kg"))
         #expect(filled.contains("Interests: Painting; Guitar"))
-        // Contact details are not model inputs.
-        #expect(!filled.contains("taylor@example.com"))
+        #expect(!filled.contains("Age:"))
+        #expect(!filled.contains("Weight:"))
+        #expect(!filled.contains("@"))
     }
 
     @Test
@@ -617,7 +612,7 @@ struct TangentTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appending(path: "profile.store")
-        let profile = UserProfile(name: "Alex", age: 30, interests: ["Photography"],
+        let profile = UserProfile(name: "Alex", interests: ["Photography"],
                                   concerns: ["Finishing a project"], dailyReminder: Date(timeIntervalSince1970: 100))
         let entry = DiaryEntry(profileID: profile.id, day: Date(), promptText: "original prompt",
                                summaryShort: "I finished a photo series.", transcriptPath: "/private/entry.txt")
@@ -626,7 +621,12 @@ struct TangentTests {
             // Reproduce the unversioned database written by the previous app.
             let schema = Schema(TangentSchemaV1.models)
             let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, url: url)])
-            container.mainContext.insert(TangentSchemaV1.UserProfileRecord(profile: profile))
+            let profileRecord = TangentSchemaV1.UserProfileRecord(profile: profile)
+            profileRecord.age = 30
+            profileRecord.weight = 68
+            profileRecord.gender = "Non-binary"
+            profileRecord.email = "alex@example.com"
+            container.mainContext.insert(profileRecord)
             container.mainContext.insert(TangentSchemaV1.DiaryEntryRecord(entry: entry))
             container.mainContext.insert(TangentSchemaV1.QuestionRecord(question: question))
             try container.mainContext.save()
@@ -640,6 +640,22 @@ struct TangentTests {
             try ProfileSeeder.seedIfNeeded(in: context)
             #expect(try context.fetch(FetchDescriptor<UserProfileRecord>()).map(\.domainModel) == [profile])
         }
+        var database: OpaquePointer?
+        #expect(sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK)
+        defer { sqlite3_close(database) }
+        var statement: OpaquePointer?
+        #expect(sqlite3_prepare_v2(database, "PRAGMA table_info(ZUSERPROFILERECORD)", -1,
+                                   &statement, nil) == SQLITE_OK)
+        defer { sqlite3_finalize(statement) }
+        var columns: [String] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            columns.append(String(cString: sqlite3_column_text(statement, 1)))
+        }
+        #expect(columns.contains("ZNAME"))
+        #expect(!columns.contains("ZAGE"))
+        #expect(!columns.contains("ZWEIGHT"))
+        #expect(!columns.contains("ZGENDER"))
+        #expect(!columns.contains("ZEMAIL"))
     }
 
     @Test
