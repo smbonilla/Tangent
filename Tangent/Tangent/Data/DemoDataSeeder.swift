@@ -2,6 +2,29 @@ import Foundation
 import SwiftData
 
 enum DemoDataSeeder {
+    #if DEBUG
+    @MainActor
+    static func seedMultipleRecordingsForUITesting(in context: ModelContext) throws {
+        guard let profile = try context.fetch(FetchDescriptor<UserProfileRecord>()).first else { return }
+        let today = Calendar.autoupdatingCurrent.startOfDay(for: Date())
+        for (id, hour, text) in [
+            ("11111111-1111-1111-1111-111111111111", 9, "A morning walk gave me a new idea."),
+            ("22222222-2222-2222-2222-222222222222", 15, "I made progress on that idea in the afternoon.")
+        ] {
+            let uuid = UUID(uuidString: id)!
+            if try context.fetch(FetchDescriptor<DiaryEntryRecord>()).contains(where: { $0.id == uuid }) { continue }
+            let entry = DiaryEntry(
+                id: uuid, profileID: profile.id, day: today,
+                recordingStartedAt: today.addingTimeInterval(Double(hour) * 3600),
+                promptText: demoPrompt, summaryShort: text,
+                transcriptPath: try RecordHomeViewModel.writeTranscript(text)
+            )
+            context.insert(DiaryEntryRecord(entry: entry))
+        }
+        try context.save()
+    }
+    #endif
+
     @MainActor
     static func seedIfNeeded(in modelContext: ModelContext) throws {
         #if DEBUG

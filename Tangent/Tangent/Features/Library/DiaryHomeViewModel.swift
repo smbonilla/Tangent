@@ -3,7 +3,7 @@ import Foundation
 
 struct DiaryTimelineDay: Identifiable, Equatable {
     let date: Date
-    let entry: DiaryEntry?
+    let entries: [DiaryEntry]
 
     var id: Date { date }
 }
@@ -11,6 +11,7 @@ struct DiaryTimelineDay: Identifiable, Equatable {
 @MainActor
 final class DiaryHomeViewModel: ObservableObject {
     @Published private(set) var days: [DiaryTimelineDay]
+    @Published private(set) var isLoading = true
     @Published private(set) var needsModel = false
     @Published private(set) var transcriptPreviews: [UUID: String] = [:]
     @Published private(set) var loadError: String?
@@ -31,6 +32,8 @@ final class DiaryHomeViewModel: ObservableObject {
     }
 
     func load() async {
+        isLoading = true
+        defer { isLoading = false }
         do {
             if let modelCatalog {
                 needsModel = !(await modelCatalog.state(of: modelCatalog.selectedModel)).isReady
@@ -86,8 +89,12 @@ final class DiaryHomeViewModel: ObservableObject {
         var date = firstDay
 
         while date <= today {
-            let entry = entriesByDay[date]?.max { $0.day < $1.day }
-            result.append(DiaryTimelineDay(date: date, entry: entry))
+            let entries = (entriesByDay[date] ?? []).sorted {
+                let left = $0.recordingStartedAt ?? $0.day
+                let right = $1.recordingStartedAt ?? $1.day
+                return left == right ? $0.id.uuidString < $1.id.uuidString : left < right
+            }
+            result.append(DiaryTimelineDay(date: date, entries: entries))
 
             guard let nextDate = calendar.date(
                 byAdding: .day,

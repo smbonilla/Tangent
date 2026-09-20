@@ -106,6 +106,7 @@ final class DiaryEntryRecord {
     @Attribute(.unique) var id: UUID
     var profileID: UUID
     var day: Date
+    var recordingStartedAt: Date?
     var questions: [DiaryQuestion]
     var promptText: String
     var summaryShort: String
@@ -115,6 +116,7 @@ final class DiaryEntryRecord {
         id = entry.id
         profileID = entry.profileID
         day = entry.day
+        recordingStartedAt = entry.recordingStartedAt
         questions = entry.questions
         promptText = entry.promptText
         summaryShort = entry.summaryShort
@@ -124,6 +126,7 @@ final class DiaryEntryRecord {
     func update(from entry: DiaryEntry) {
         profileID = entry.profileID
         day = entry.day
+        recordingStartedAt = entry.recordingStartedAt
         questions = entry.questions
         promptText = entry.promptText
         summaryShort = entry.summaryShort
@@ -135,6 +138,7 @@ final class DiaryEntryRecord {
             id: id,
             profileID: profileID,
             day: day,
+            recordingStartedAt: recordingStartedAt,
             questions: questions,
             promptText: promptText,
             summaryShort: summaryShort,

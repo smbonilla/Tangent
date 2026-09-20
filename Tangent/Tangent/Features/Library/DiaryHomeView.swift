@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 
 struct DiaryHomeView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @StateObject private var model: DiaryHomeViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showsPastDayPicker = false
 
     private let calendar: Calendar
     private let openEntry: (UUID) -> Void
@@ -46,6 +48,7 @@ struct DiaryHomeView: View {
             }
         }
         .background(Color.tangentWash)
+        .sheet(isPresented: $showsPastDayPicker) { pastDayPicker }
         .overlay(alignment: .topTrailing) {
             SettingsToolbarButton(action: openSettings)
                 .padding(.trailing, 6)
@@ -74,6 +77,8 @@ struct DiaryHomeView: View {
                             .id(day.id)
                     }
 
+                    addRecordMenu
+
                     if let loadError = model.loadError {
                         Text(loadError)
                             .font(.system(.footnote, design: .serif))
@@ -98,10 +103,62 @@ struct DiaryHomeView: View {
     }
 
     private var firstEntryAction: some View {
-        todayRecordCard(on: calendar.startOfDay(for: Date()))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, 44)
-            .padding(.bottom, 40)
+        VStack(spacing: 22) {
+            todayRecordCard(on: calendar.startOfDay(for: Date()))
+            addRecordMenu
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 44)
+        .padding(.bottom, 40)
+    }
+
+    private var addRecordMenu: some View {
+        Group {
+            if model.days.contains(where: { calendar.isDateInToday($0.date) && !$0.entries.isEmpty }) {
+                Menu {
+                    Button("Add a tangent for today", action: openRecord)
+                        .accessibilityIdentifier("add-record-today")
+                    Button("Record for a past day") { showsPastDayPicker = true }
+                        .accessibilityIdentifier("add-record-past")
+                } label: {
+                    addRecordIcon
+                }
+                .accessibilityLabel("Add a tangent")
+            } else {
+                Button { showsPastDayPicker = true } label: { addRecordIcon }
+                    .accessibilityLabel("Record for a past day")
+            }
+        }
+        .accessibilityIdentifier("add-record")
+        .tint(.gray)
+        .disabled(model.isLoading)
+    }
+
+    private var addRecordIcon: some View {
+        Image(systemName: "plus.circle")
+            .font(.system(size: 30, weight: .regular))
+            .foregroundStyle(Color.gray)
+            .frame(width: 48, height: 48)
+            .contentShape(Rectangle())
+    }
+
+    private var pastDayPicker: some View {
+        NavigationStack {
+            PastRecordingCalendar(calendar: calendar) { day in
+                showsPastDayPicker = false
+                openEmptyDay(day)
+            }
+            .padding()
+            .navigationTitle("Record for a past day")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showsPastDayPicker = false }
+                }
+            }
+        }
+        .tint(Color.tangentPurple)
+        .presentationDetents([.height(460), .large])
     }
 
     private var recordPrompt: some View {
@@ -114,13 +171,18 @@ struct DiaryHomeView: View {
     }
 
     private var isFirstEntry: Bool {
-        model.days.count == 1 && model.days.first?.entry == nil
+        model.days.count == 1 && model.days.first?.entries.isEmpty == true
     }
 
     @ViewBuilder
     private func dayRow(_ day: DiaryTimelineDay) -> some View {
-        if let entry = day.entry {
-            filledDayCard(entry, on: day.date)
+        if !day.entries.isEmpty {
+            VStack(spacing: 22) {
+                ForEach(day.entries) { entry in
+                    filledDayCard(entry, on: day.date)
+                        .accessibilityIdentifier("diary-entry-\(entry.id.uuidString)")
+                }
+            }
         } else if calendar.isDateInToday(day.date) {
             todayRecordCard(on: day.date)
         } else {
@@ -293,6 +355,41 @@ private enum DayCardChrome {
             return Color.tangentInk.opacity(0.38)
         case .today:
             return .white
+        }
+    }
+}
+
+// A calendar with no preselected date lets every day tap immediately open a recording.
+private struct PastRecordingCalendar: UIViewRepresentable {
+    let calendar: Calendar
+    let onSelect: (Date) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    func makeUIView(context: Context) -> UICalendarView {
+        let view = UICalendarView()
+        view.calendar = calendar
+        view.availableDateRange = DateInterval(
+            start: .distantPast,
+            end: calendar.startOfDay(for: Date()).addingTimeInterval(-1)
+        )
+        view.visibleDateComponents = calendar.dateComponents([.year, .month], from: view.availableDateRange.end)
+        view.selectionBehavior = UICalendarSelectionSingleDate(delegate: context.coordinator)
+        view.accessibilityIdentifier = "past-record-calendar"
+        return view
+    }
+
+    func updateUIView(_ uiView: UICalendarView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    final class Coordinator: NSObject, UICalendarSelectionSingleDateDelegate {
+        var parent: PastRecordingCalendar
+        init(parent: PastRecordingCalendar) { self.parent = parent }
+
+        func dateSelection(_ selection: UICalendarSelectionSingleDate, didSelectDate dateComponents: DateComponents?) {
+            guard let dateComponents, let date = parent.calendar.date(from: dateComponents) else { return }
+            parent.onSelect(parent.calendar.startOfDay(for: date))
         }
     }
 }

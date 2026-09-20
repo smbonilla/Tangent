@@ -23,6 +23,61 @@ final class TangentUITests: XCTestCase {
     }
 
     @MainActor
+    func testMultipleRecordingsAndAddRecordMenu() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding", "--multiple-recordings"]
+        app.launch()
+        app.buttons["complete-onboarding"].tap()
+        let morning = app.buttons["diary-entry-11111111-1111-1111-1111-111111111111"]
+        let afternoon = app.buttons["diary-entry-22222222-2222-2222-2222-222222222222"]
+        XCTAssertTrue(morning.waitForExistence(timeout: 3))
+        XCTAssertTrue(afternoon.exists)
+        XCTAssertLessThan(morning.frame.minY, afternoon.frame.minY)
+        let diary = XCTAttachment(screenshot: app.screenshot())
+        diary.name = "Two recordings for today"
+        diary.lifetime = .keepAlways
+        add(diary)
+        morning.tap()
+        XCTAssertTrue(app.staticTexts["recording-start-time"].waitForExistence(timeout: 3))
+        let detail = XCTAttachment(screenshot: app.screenshot())
+        detail.name = "Recording start time"
+        detail.lifetime = .keepAlways
+        add(detail)
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["add-record"].tap()
+        app.buttons["Add a tangent for today"].tap()
+        XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
+        app.buttons["diary-home-logo"].tap()
+        app.buttons["add-record"].tap()
+        app.buttons["Record for a past day"].tap()
+        XCTAssertTrue(app.otherElements["past-record-calendar"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["record-selected-day"].exists)
+        let picker = XCTAttachment(screenshot: app.screenshot())
+        picker.name = "Choose a past day"
+        picker.lifetime = .keepAlways
+        add(picker)
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let day = String(Calendar.current.component(.day, from: yesterday))
+        app.otherElements["past-record-calendar"].buttons.containing(.staticText, identifier: day).firstMatch.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Start recording for")).firstMatch.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testPlusOpensCalendarDirectlyBeforeTodaysFirstTangent() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding"]
+        app.launch()
+        app.buttons["complete-onboarding"].tap()
+        XCTAssertTrue(app.buttons["add-record"].waitForExistence(timeout: 3))
+        app.buttons["add-record"].tap()
+        XCTAssertTrue(app.otherElements["past-record-calendar"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Add a tangent for today"].exists)
+        app.buttons["Cancel"].tap()
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Record today’s Tangent")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testDiaryNavigation() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-onboarding"]

@@ -116,7 +116,9 @@ struct LiveTranscriptionTests {
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
         try await store.saveUserProfile(UserProfile(name: "Alex"))
         let model = RecordHomeViewModel(audioRecorder: recorder, transcriber: transcriber, noteStore: store)
+        let beforeStart = Date()
         await model.startRecording()
+        let afterStart = Date()
         #expect(model.isRecording)
         #expect(factory.windows.first?.frames == 1000)
         let id = try #require(await model.stopRecording())
@@ -125,6 +127,8 @@ struct LiveTranscriptionTests {
             try? FileManager.default.removeItem(atPath: entry.transcriptPath)
             if let url = recorder.url { try? FileManager.default.removeItem(at: url) }
         }
+        let startedAt = try #require(entry.recordingStartedAt)
+        #expect(startedAt >= beforeStart && startedAt <= afterStart)
         #expect(entry.transcriptPath.hasSuffix(".txt"))
         #expect(try String(contentsOfFile: entry.transcriptPath, encoding: .utf8) == "Beginning middle and end.")
         #expect(transcriber.fileRequests == 0)

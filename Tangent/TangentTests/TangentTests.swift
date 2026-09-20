@@ -110,10 +110,10 @@ struct TangentTests {
         )
 
         #expect(days.count == 4)
-        #expect(days[0].entry?.summaryShort == "First entry")
-        #expect(days[1].entry?.summaryShort == "Second entry")
-        #expect(days[2].entry == nil)
-        #expect(days[3].entry == nil)
+        #expect(days[0].entries.first?.summaryShort == "First entry")
+        #expect(days[1].entries.first?.summaryShort == "Second entry")
+        #expect(days[2].entries.isEmpty)
+        #expect(days[3].entries.isEmpty)
     }
 
     @Test
@@ -137,7 +137,7 @@ struct TangentTests {
         )
 
         #expect(days.count == 1)
-        #expect(days[0].entry?.id == entry.id)
+        #expect(days[0].entries.first?.id == entry.id)
     }
 
     @Test
@@ -153,7 +153,7 @@ struct TangentTests {
             calendar: calendar
         )
 
-        #expect(days == [DiaryTimelineDay(date: today, entry: nil)])
+        #expect(days == [DiaryTimelineDay(date: today, entries: [])])
     }
 
     @Test
@@ -253,7 +253,7 @@ struct TangentTests {
     }
 
     @Test @MainActor
-    func recordingOverwritesAnExistingEntryOnTheSameDay() async throws {
+    func recordingAddsEntriesAndRedoReplacesOnlyTheSelectedEntry() async throws {
         let container = try TangentModelContainer.make(inMemory: true)
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
         let user = UserProfile(name: "Taylor")
@@ -280,10 +280,19 @@ struct TangentTests {
             day: pastDay, transcriptPath: secondPath, questions: [], calendar: testCalendar
         )
         let saved = try #require(await store.diaryEntry(id: secondID))
-        #expect(firstID == secondID)
+        #expect(firstID != secondID)
         #expect(saved.transcriptPath == secondPath)
-        #expect(saved.summaryShort.isEmpty)
-        #expect(try await store.diaryEntries(profileID: user.id).count == 1)
+        #expect(try await store.diaryEntry(id: firstID)?.transcriptPath == firstPath)
+        #expect(try await store.diaryEntries(profileID: user.id).count == 2)
+
+        let redoID = try await recorder.saveEntry(
+            day: pastDay, transcriptPath: secondPath, questions: [],
+            replacingEntryID: firstID, calendar: testCalendar
+        )
+        #expect(redoID == firstID)
+        #expect(try await store.diaryEntry(id: firstID)?.transcriptPath == secondPath)
+        #expect(try await store.diaryEntry(id: secondID)?.transcriptPath == secondPath)
+        #expect(try await store.diaryEntries(profileID: user.id).count == 2)
     }
 
     @Test @MainActor

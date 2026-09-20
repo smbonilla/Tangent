@@ -52,6 +52,9 @@ struct TangentApp: App {
             if isUITesting && ProcessInfo.processInfo.arguments.contains("--demo-data") {
                 try DemoDataSeeder.seedIfNeeded(in: modelContainer.mainContext)
             }
+            if isUITesting && ProcessInfo.processInfo.arguments.contains("--multiple-recordings") {
+                try DemoDataSeeder.seedMultipleRecordingsForUITesting(in: modelContainer.mainContext)
+            }
             #endif
             dependencies = AppDependencies(
                 noteStore: SwiftDataNoteStore(

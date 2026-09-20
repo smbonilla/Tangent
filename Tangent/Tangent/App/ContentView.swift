@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var diaryPath: [DiaryRoute] = []
     @State private var recordPath: [RecordRoute] = []
     @State private var recordingDay: Date?
+    @State private var recordingEntryID: UUID?
     @State private var coversRecordTransition = false
 
     init(dependencies: AppDependencies) {
@@ -36,7 +37,7 @@ struct ContentView: View {
                             transcriber: dependencies.transcriber,
                             languageModel: dependencies.languageModel,
                             diaryID: diaryID,
-                            redo: { startRecording(on: $0) },
+                            redo: { startRecording(on: $0, replacing: diaryID) },
                             openSettings: { diaryPath.append(.settings) }
                         )
                     case .freshRecording(let diaryID):
@@ -46,7 +47,7 @@ struct ContentView: View {
                             languageModel: dependencies.languageModel,
                             diaryID: diaryID,
                             streamsTranscript: true,
-                            redo: { startRecording(on: $0) },
+                            redo: { startRecording(on: $0, replacing: diaryID) },
                             openSettings: { diaryPath.append(.settings) }
                         )
                     case .settings:
@@ -73,6 +74,7 @@ struct ContentView: View {
                     noteStore: dependencies.noteStore,
                     languageModel: dependencies.languageModel,
                     entryDay: recordingDay,
+                    replacingEntryID: recordingEntryID,
                     openSettings: { recordPath.append(.settings) },
                     onRecordingFinished: showDailySummary(for:),
                     isActive: selectedTab == .record
@@ -128,6 +130,7 @@ struct ContentView: View {
         .onChange(of: selectedTab) { _, tab in
             if tab != .record {
                 recordingDay = nil
+                recordingEntryID = nil
             }
         }
     }
@@ -148,11 +151,13 @@ struct ContentView: View {
         diaryPath = []
         recordPath = []
         recordingDay = nil
+        recordingEntryID = nil
         selectedTab = .diary
     }
 
-    private func startRecording(on day: Date?) {
+    private func startRecording(on day: Date?, replacing entryID: UUID? = nil) {
         recordingDay = day
+        recordingEntryID = entryID
         diaryPath = []
         recordPath = []
         selectedTab = .record

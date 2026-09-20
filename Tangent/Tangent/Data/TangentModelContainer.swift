@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 enum TangentModelContainer {
-    static let schema = Schema(TangentSchemaV4.models, version: TangentSchemaV4.versionIdentifier)
+    static let schema = Schema(TangentSchemaV5.models, version: TangentSchemaV5.versionIdentifier)
 
     static func make(inMemory: Bool = false, storeURL: URL? = nil) throws -> ModelContainer {
         let configuration: ModelConfiguration

@@ -16,6 +16,9 @@ enum DiaryXMLExporter {
             lines.append("  <entry id=\"\(entry.id.uuidString)\">")
             lines.append("    <profile-id>\(entry.profileID.uuidString)</profile-id>")
             lines.append("    <day>\(dateString(entry.day))</day>")
+            if let startedAt = entry.recordingStartedAt {
+                lines.append("    <recording-started-at>\(dateString(startedAt))</recording-started-at>")
+            }
             lines.append("    <questions>")
             for question in entry.questions {
                 lines.append("      <question id=\"\(question.id.uuidString)\">\(escaped(question.text))</question>")

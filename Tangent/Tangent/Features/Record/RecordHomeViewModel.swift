@@ -19,6 +19,10 @@ final class RecordHomeViewModel: ObservableObject {
     private let noteStore: any NoteStore
     private let languageModel: (any DiaryLanguageModel)?
     var entryDay: Date?
+    var replacingEntryID: UUID?
+    private var recordingStartedAt: Date?
+    private var recordingDay: Date?
+    private var recordingReplacementID: UUID?
     private var elapsedTask: Task<Void, Never>?
     private var questionTask: Task<Void, Never>?
     private var suggestionOfferTask: Task<Void, Never>?
@@ -84,6 +88,9 @@ final class RecordHomeViewModel: ObservableObject {
                 try Task.checkCancellation()
                 try await audioRecorder.startRecording(to: destination)
             }
+            recordingStartedAt = Date()
+            recordingDay = entryDay ?? recordingStartedAt
+            recordingReplacementID = replacingEntryID
             elapsed = 0
             promptedQuestions = []
             currentPromptQuestion = nil
@@ -131,9 +138,11 @@ final class RecordHomeViewModel: ObservableObject {
                 }
             }
             let id = try await saveEntry(
-                day: entryDay ?? Date(),
+                day: recordingDay ?? Date(),
                 transcriptPath: transcriptPath,
-                questions: promptedQuestions
+                questions: promptedQuestions,
+                recordingStartedAt: recordingStartedAt,
+                replacingEntryID: recordingReplacementID
             )
             // Keep the audio until the complete transcript and entry are both
             // durable. Failed live recognition leaves it available for recovery.
@@ -168,23 +177,27 @@ final class RecordHomeViewModel: ObservableObject {
         day: Date,
         transcriptPath: String,
         questions: [DiaryQuestion],
+        recordingStartedAt: Date? = nil,
+        replacingEntryID: UUID? = nil,
         calendar: Calendar = .autoupdatingCurrent
     ) async throws -> UUID {
         guard let user = try await noteStore.userProfiles().first else {
             throw RecordPersistenceError.missingProfile
         }
 
-        let existing = try await noteStore.diaryEntries(profileID: user.id)
-            .filter { calendar.isDate($0.day, inSameDayAs: day) }
-        let id = existing.first?.id ?? UUID()
-        for old in existing where old.id != id {
-            try await noteStore.deleteDiaryEntry(id: old.id)
+        if let replacingEntryID {
+            guard let existing = try await noteStore.diaryEntry(id: replacingEntryID),
+                  existing.profileID == user.id,
+                  calendar.isDate(existing.day, inSameDayAs: day) else {
+                throw RecordPersistenceError.missingEntry
+            }
         }
 
         let entry = DiaryEntry(
-            id: id,
+            id: replacingEntryID ?? UUID(),
             profileID: user.id,
             day: day,
+            recordingStartedAt: recordingStartedAt,
             questions: questions,
             promptText: "Daily Tangent recorded and transcribed on device",
             transcriptPath: transcriptPath
@@ -293,8 +306,12 @@ final class RecordHomeViewModel: ObservableObject {
 
 private enum RecordPersistenceError: LocalizedError {
     case missingProfile
+    case missingEntry
 
     var errorDescription: String? {
-        "Your profile is needed to save this Tangent."
+        switch self {
+        case .missingProfile: "Your profile is needed to save this Tangent."
+        case .missingEntry: "The Tangent you wanted to replace could not be found."
+        }
     }
 }

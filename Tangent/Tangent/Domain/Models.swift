@@ -70,6 +70,7 @@ struct DiaryEntry: Identifiable, Equatable, Sendable {
     let id: UUID
     let profileID: UUID
     var day: Date
+    var recordingStartedAt: Date?
     var questions: [DiaryQuestion]
     var promptText: String
     var summaryShort: String
@@ -79,6 +80,7 @@ struct DiaryEntry: Identifiable, Equatable, Sendable {
         id: UUID = UUID(),
         profileID: UUID,
         day: Date,
+        recordingStartedAt: Date? = nil,
         questions: [DiaryQuestion] = [],
         promptText: String,
         summaryShort: String = "",
@@ -87,6 +89,7 @@ struct DiaryEntry: Identifiable, Equatable, Sendable {
         self.id = id
         self.profileID = profileID
         self.day = day
+        self.recordingStartedAt = recordingStartedAt
         self.questions = questions
         self.promptText = promptText
         self.summaryShort = summaryShort

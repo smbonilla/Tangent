@@ -234,12 +234,21 @@ enum TangentSchemaV3: VersionedSchema {
     static var versionIdentifier = Schema.Version(3, 0, 0)
     static var models: [any PersistentModel.Type] {
         [TangentSchemaV1.UserProfileRecord.self, PromptRecord.self, QuestionRecord.self,
-         DiaryEntryRecord.self, InsightRecord.self]
+         TangentSchemaV1.DiaryEntryRecord.self, InsightRecord.self]
     }
 }
 
 enum TangentSchemaV4: VersionedSchema {
+    // Keep the pre-start-time diary model frozen for existing installations.
     static var versionIdentifier = Schema.Version(4, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        [UserProfileRecord.self, PromptRecord.self, QuestionRecord.self,
+         TangentSchemaV1.DiaryEntryRecord.self, InsightRecord.self]
+    }
+}
+
+enum TangentSchemaV5: VersionedSchema {
+    static var versionIdentifier = Schema.Version(5, 0, 0)
     static var models: [any PersistentModel.Type] {
         [UserProfileRecord.self, PromptRecord.self, QuestionRecord.self,
          DiaryEntryRecord.self, InsightRecord.self]
@@ -248,13 +257,14 @@ enum TangentSchemaV4: VersionedSchema {
 
 enum TangentMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [TangentSchemaV0.self, TangentSchemaV3.self, TangentSchemaV4.self]
+        [TangentSchemaV0.self, TangentSchemaV3.self, TangentSchemaV4.self, TangentSchemaV5.self]
     }
 
     static var stages: [MigrationStage] {
         [
             .lightweight(fromVersion: TangentSchemaV0.self, toVersion: TangentSchemaV3.self),
             .lightweight(fromVersion: TangentSchemaV3.self, toVersion: TangentSchemaV4.self),
+            .lightweight(fromVersion: TangentSchemaV4.self, toVersion: TangentSchemaV5.self),
         ]
     }
 }

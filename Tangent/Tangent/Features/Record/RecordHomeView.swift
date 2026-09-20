@@ -9,6 +9,7 @@ struct RecordHomeView: View {
     private let openSettings: () -> Void
     private let onRecordingFinished: (UUID) -> Void
     private let entryDay: Date?
+    private let replacingEntryID: UUID?
 
     /// Delay before "Tap to record" fades in. Overridable for previews.
     private let instructionDelay: TimeInterval
@@ -26,6 +27,7 @@ struct RecordHomeView: View {
         noteStore: any NoteStore,
         languageModel: (any DiaryLanguageModel)? = nil,
         entryDay: Date? = nil,
+        replacingEntryID: UUID? = nil,
         openSettings: @escaping () -> Void,
         onRecordingFinished: @escaping (UUID) -> Void,
         instructionDelay: TimeInterval = 3,
@@ -43,6 +45,7 @@ struct RecordHomeView: View {
         self.openSettings = openSettings
         self.onRecordingFinished = onRecordingFinished
         self.entryDay = entryDay
+        self.replacingEntryID = replacingEntryID
         self.instructionDelay = instructionDelay
         self.forcesReducedMotion = forcesReducedMotion
         self.isActive = isActive
@@ -89,8 +92,12 @@ struct RecordHomeView: View {
         .onChange(of: entryDay) { _, day in
             model.entryDay = day
         }
+        .onChange(of: replacingEntryID) { _, id in
+            model.replacingEntryID = id
+        }
         .task(id: isActive) {
             model.entryDay = entryDay
+            model.replacingEntryID = replacingEntryID
             guard isActive else {
                 showsInstruction = false
                 return

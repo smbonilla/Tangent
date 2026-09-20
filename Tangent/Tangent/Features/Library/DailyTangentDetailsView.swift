@@ -45,17 +45,26 @@ struct DailyTangentDetailsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text(
-                                entry.day,
-                                format: .dateTime
-                                    .weekday(.wide)
-                                    .day()
-                                    .month(.wide)
-                                    .year()
-                            )
-                            .font(.system(.title2, design: .serif, weight: .medium))
-                            .foregroundStyle(Color.tangentInk)
-                            .onTapGesture(perform: dismissKeyboard)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(
+                                    entry.day,
+                                    format: .dateTime
+                                        .weekday(.wide)
+                                        .day()
+                                        .month(.wide)
+                                        .year()
+                                )
+                                .font(.system(.title2, design: .serif, weight: .medium))
+                                .foregroundStyle(Color.tangentInk)
+                                .onTapGesture(perform: dismissKeyboard)
+                                if let startedAt = entry.recordingStartedAt {
+                                    Text(startedAt, format: .dateTime.hour().minute())
+                                        .font(.system(.body, design: .serif))
+                                        .foregroundStyle(Color.tangentInk.opacity(0.65))
+                                        .accessibilityLabel("Recording started at \(startedAt.formatted(date: .omitted, time: .shortened))")
+                                        .accessibilityIdentifier("recording-start-time")
+                                }
+                            }
 
                         if preferences.aiEnabled {
                             summarySection
@@ -65,13 +74,13 @@ struct DailyTangentDetailsView: View {
 
                             transcriptSection
 
-                            if let redo {
+                            if redo != nil {
                                 TangentFillButton(
                                     title: calendar.isDateInToday(entry.day)
                                         ? "Redo today’s Tangent"
                                         : "Redo Tangent",
                                     hint: shouldConfirmRedo
-                                        ? "Asks before overwriting this day’s Tangent"
+                                        ? "Asks before overwriting this recording"
                                         : "Opens a new recording for this day",
                                     identifier: "redo-tangent",
                                     action: confirmOrRedo
@@ -126,7 +135,7 @@ struct DailyTangentDetailsView: View {
                 }
             }
         } message: {
-            Text("This will overwrite the Tangent saved for this day.")
+            Text("This will overwrite only this recording. Other recordings for this day will be kept.")
         }
         .task {
             await model.start()
