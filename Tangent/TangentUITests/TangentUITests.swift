@@ -136,15 +136,15 @@ final class TangentUITests: XCTestCase {
         let ai = app.switches["ai-enabled"]
         for _ in 0..<5 where !ai.isHittable { app.swipeUp() }
         ai.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        let qwen = app.buttons["model-qwen2.5-0.5b-instruct-4bit"]
-        // iOS can report an off-screen Form button as hittable while it is
-        // below the fixed export footer. Bring the complete row into view.
-        for _ in 0..<5 where !qwen.isHittable || qwen.frame.maxY >= app.buttons["Export diary"].frame.minY {
+        let gemma = app.buttons["model-gemma3n-e2b-it-lm-4bit"]
+        XCTAssertFalse(app.buttons["model-qwen2.5-0.5b-instruct-4bit"].exists)
+        // Form can report a partially clipped row as hittable. Reveal the whole row.
+        for _ in 0..<5 where !gemma.isHittable || gemma.frame.maxY > app.frame.maxY - 80 {
             app.swipeUp()
         }
-        XCTAssertTrue(qwen.isHittable)
-        qwen.tap()
-        XCTAssertEqual(qwen.value as? String, "Selected")
+        XCTAssertTrue(gemma.isHittable)
+        gemma.tap()
+        XCTAssertEqual(gemma.value as? String, "Selected")
         // Choosing a model is a preference; it must not start downloading weights.
         XCTAssertFalse(app.buttons["Cancel"].exists)
     }

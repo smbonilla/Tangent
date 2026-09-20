@@ -778,22 +778,26 @@ struct TangentTests {
     }
 
     @Test
-    func supportedModelsHaveStableIdentitiesAndSmallQwenChoices() {
+    func supportedModelsHaveStableIdentitiesAndGemma3nChoice() {
         #expect(SummaryModelID.default == .qwen3_0_6B)
         #expect(Set(SummaryModelID.allCases.map(\.repoID)).count == SummaryModelID.allCases.count)
         #expect(SummaryModelID.qwen3_0_6B.approximateDownloadBytes < 400_000_000)
-        #expect(SummaryModelID.qwen2_5_0_5B.approximateDownloadBytes < SummaryModelID.qwen3_0_6B.approximateDownloadBytes)
+        #expect(SummaryModelID.gemma3n_E2B.approximateDownloadBytes == 2_550_000_000)
+        #expect(SummaryModelID.gemma3n_E2B.repoID == "mlx-community/gemma-3n-E2B-it-lm-4bit")
+        #expect(SummaryModelID(rawValue: "gemma3n-e2b-it-lm-4bit") == .gemma3n_E2B)
+        #expect(SummaryModelID(rawValue: "qwen2.5-0.5b-instruct-4bit") == nil)
+        #expect(!SummaryModelID.gemma3n_E2B.disablesThinking)
         #expect(SummaryModelID.qwen3_0_6B.disablesThinking)
         #expect(SummaryModelID.qwen3_1_7B.disablesThinking)
         #expect(!SummaryModelID.gemma3_1B.disablesThinking)
         #expect(SummaryModelID(rawValue: "gemma3-1b-qat-4bit") == .gemma3_1B)
         #expect(SummaryModelID(rawValue: "medgemma-1.5-4b-it-4bit") == .medgemma4B)
-        #expect(SummaryModelID.qwen2_5_0_5B.contextWindowTokens == 32_768)
+        #expect(SummaryModelID.gemma3n_E2B.contextWindowTokens == 32_768)
         #expect(SummaryModelID.qwen3_0_6B.contextWindowTokens == 40_960)
         #expect(SummaryModelID.qwen3_1_7B.contextWindowTokens == 40_960)
         #expect(SummaryModelID.gemma3_1B.contextWindowTokens == 32_768)
         #expect(SummaryModelID.medgemma4B.contextWindowTokens == 131_072)
-        #expect(SummaryModelID.qwen2_5_0_5B.maximumInsightSpanDays == 21)
+        #expect(SummaryModelID.gemma3n_E2B.maximumInsightSpanDays == 14)
         #expect(SummaryModelID.qwen3_0_6B.maximumInsightSpanDays == 28)
         #expect(SummaryModelID.gemma3_1B.maximumInsightSpanDays == 28)
         #expect(SummaryModelID.qwen3_1_7B.maximumInsightSpanDays == 42)

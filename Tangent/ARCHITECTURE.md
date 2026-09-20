@@ -43,10 +43,10 @@ orders the summaries by date, and asks for trends in that
 range. Interests and concerns are optional context for what the writer may
 want to hear about; they are not required. Transcripts are not inputs.
 Entries without summaries are skipped.
-The From/To range is capped per selected model: Qwen2.5 0.5B looks back 3 weeks,
-Qwen3 0.6B and Gemma 3 1B 4 weeks, Qwen3 1.7B 6 weeks, and MedGemma 1.5 4B
+The From/To range is capped per selected model: Qwen3 0.6B and Gemma 3 1B
+look back 4 weeks, Qwen3 1.7B 6 weeks, and Gemma 3n E2B and MedGemma 1.5 4B
 2 weeks. Official context windows are 32K–128K tokens; on-device generation
-stays inside the 4,096-input-token budget, and the largest model keeps the
+stays inside the 4,096-input-token budget, and the largest models keep the
 shortest span because of memory.
 
 `MLXDiaryLanguageModel` holds one loaded model. `MLXModelCatalog` downloads
@@ -56,9 +56,12 @@ inference stay on the device; network access is used to download model weights.
 The diary stores one short summary per entry. `ProfileSeeder` creates a profile
 and the default prompts without resetting user edits.
 
-Settings edits the user's name, interests, and concerns. The model catalog offers Qwen3 0.6B, Qwen2.5 0.5B, Qwen3 1.7B, Gemma 3 1B,
+Settings edits the user's name, interests, and concerns. The model catalog offers Qwen3 0.6B, Gemma 3n E2B, Qwen3 1.7B, Gemma 3 1B,
 and MedGemma 1.5 4B. Qwen3 uses its tokenizer's non-thinking mode. Model choice
 is stored separately from diary data, so switching does not change diary entries.
+Gemma 3n E2B uses the text-only `mlx-community/gemma-3n-E2B-it-lm-4bit`
+weights (about 2.55 GB) through the LLM factory. Saved selections of the removed
+Qwen2.5 0.5B model fall back to the default Qwen3 0.6B.
 
 ## Adding workflows
 
