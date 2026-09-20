@@ -185,17 +185,55 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     /// empty until the model has written it.
     private func persist(_ transcript: String) async throws {
         guard var entry else { return }
-        let audioPath = entry.transcriptPath
-        let storedPath = try RecordHomeViewModel.writeTranscript(transcript)
-        entry.transcriptPath = storedPath
+        entry.transcriptPath = try writeTranscriptFile(transcript, replacing: entry.transcriptPath)
         try await noteStore.saveDiaryEntry(entry)
         self.entry = entry
+        self.transcript = transcript
+    }
 
-        if audioPath != storedPath {
-            try? FileManager.default.removeItem(
-                at: URL(fileURLWithPath: audioPath)
-            )
+    /// Writes a user edit of the visible summary and/or transcript. Empty
+    /// summary text is stored as no summary, matching generation skip rules.
+    func saveEdits(summary: String?, transcript: String) async {
+        guard var entry else { return }
+        let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedTranscript != (self.transcript ?? "") {
+            do {
+                entry.transcriptPath = try writeTranscriptFile(
+                    trimmedTranscript,
+                    replacing: entry.transcriptPath
+                )
+                self.transcript = trimmedTranscript.isEmpty ? nil : trimmedTranscript
+            } catch {
+                loadError = "This transcript could not be saved."
+                return
+            }
         }
+
+        if let summary {
+            entry.summaryShort = summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        do {
+            try await noteStore.saveDiaryEntry(entry)
+            self.entry = entry
+            if summary != nil { summaryState = .settled }
+            loadError = nil
+        } catch {
+            loadError = "This Tangent could not be saved."
+        }
+    }
+
+    private func writeTranscriptFile(_ transcript: String, replacing path: String) throws -> String {
+        let url = URL(fileURLWithPath: path)
+        if path.lowercased().hasSuffix(".txt"), FileManager.default.fileExists(atPath: path) {
+            try transcript.write(to: url, atomically: true, encoding: .utf8)
+            return path
+        }
+        let storedPath = try RecordHomeViewModel.writeTranscript(transcript)
+        if !path.isEmpty, path != storedPath {
+            try? FileManager.default.removeItem(at: url)
+        }
+        return storedPath
     }
 
     private func generateSummaryIfNeeded() async {
