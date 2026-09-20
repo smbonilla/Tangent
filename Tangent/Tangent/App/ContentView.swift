@@ -26,10 +26,9 @@ struct ContentView: View {
                     modelCatalog: dependencies.modelCatalog,
                     openEntry: { diaryPath.append(.details($0)) },
                     openRecord: { startRecording(on: nil) },
-                    openEmptyDay: { startRecording(on: $0) },
-                    openSettings: { diaryPath.append(.settings) }
+                    openEmptyDay: { startRecording(on: $0) }
                 )
-                .tangentLogoToolbar(action: showDiary)
+                .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: DiaryRoute.self) { route in
                     switch route {
                     case .details(let diaryID):
@@ -76,11 +75,10 @@ struct ContentView: View {
                     languageModel: dependencies.languageModel,
                     entryDay: recordingDay,
                     replacingEntryID: recordingEntryID,
-                    openSettings: { recordPath.append(.settings) },
                     onRecordingFinished: showDailySummary(for:),
                     isActive: selectedTab == .record
                 )
-                .tangentLogoToolbar(action: showDiary)
+                .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: RecordRoute.self) { route in
                     switch route {
                     case .settings:
@@ -107,7 +105,7 @@ struct ContentView: View {
                     modelCatalog: dependencies.modelCatalog,
                     openSettings: { insightsPath.append(.settings) }
                 )
-                .tangentLogoToolbar(action: showDiary)
+                .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: InsightsRoute.self) { route in
                     switch route {
                     case .settings:
@@ -139,14 +137,40 @@ struct ContentView: View {
                 .ignoresSafeArea()
                 .opacity(coversRecordTransition ? 1 : 0)
                 .allowsHitTesting(coversRecordTransition)
+                .animation(.easeInOut(duration: 0.25), value: coversRecordTransition)
         }
-        .animation(.easeInOut(duration: 0.25), value: coversRecordTransition)
-        .animation(.easeInOut(duration: 0.25), value: selectedTab)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if showsSharedHeader {
+                HStack {
+                    DiaryLogoButton(action: showDiary)
+                    Spacer()
+                    SettingsToolbarButton(action: showSettings)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+            }
+        }
         .onChange(of: selectedTab) { _, tab in
             if tab != .record {
                 recordingDay = nil
                 recordingEntryID = nil
             }
+        }
+    }
+
+    private var showsSharedHeader: Bool {
+        switch selectedTab {
+        case .diary: diaryPath.isEmpty
+        case .record: recordPath.isEmpty
+        case .insights: insightsPath.isEmpty
+        }
+    }
+
+    private func showSettings() {
+        switch selectedTab {
+        case .diary: diaryPath.append(.settings)
+        case .record: recordPath.append(.settings)
+        case .insights: insightsPath.append(.settings)
         }
     }
 
@@ -199,18 +223,6 @@ struct ContentView: View {
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
         UINavigationBar.appearance().isTranslucent = true
-    }
-}
-
-private extension View {
-    func tangentLogoToolbar(action: @escaping () -> Void) -> some View {
-        toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                DiaryLogoButton(action: action)
-            }
-        }
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
     }
 }
 

@@ -86,6 +86,41 @@ final class TangentUITests: XCTestCase {
     }
 
     @MainActor
+    func testSharedHeaderStaysInPlaceAcrossTabs() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding"]
+        app.launch()
+        app.buttons["complete-onboarding"].tap()
+        let logo = app.buttons["diary-home-logo"]
+        let settings = app.buttons["Settings"]
+        XCTAssertTrue(logo.waitForExistence(timeout: 3))
+        let logoFrame = logo.frame
+        let settingsFrame = settings.frame
+
+        for tab in ["Record", "Insights", "Diary", "Record"] {
+            app.tabBars.buttons[tab].tap()
+            XCTAssertEqual(app.buttons.matching(identifier: "diary-home-logo").count, 1)
+            XCTAssertEqual(app.buttons.matching(identifier: "Settings").count, 1)
+            XCTAssertEqual(logo.frame, logoFrame)
+            XCTAssertEqual(settings.frame, settingsFrame)
+            settings.tap()
+            XCTAssertTrue(app.textFields["profile-name"].waitForExistence(timeout: 3))
+            XCTAssertFalse(logo.exists)
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(logo.waitForExistence(timeout: 3))
+            XCTAssertTrue(app.tabBars.buttons[tab].isSelected)
+            XCTAssertEqual(logo.frame, logoFrame)
+            XCTAssertEqual(settings.frame, settingsFrame)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Shared header on \(tab)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+        }
+        logo.tap()
+        XCTAssertTrue(app.tabBars.buttons["Diary"].isSelected)
+    }
+
+    @MainActor
     func testDiaryNavigation() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-onboarding"]

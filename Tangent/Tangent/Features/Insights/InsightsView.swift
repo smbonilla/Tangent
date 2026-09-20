@@ -31,13 +31,6 @@ struct InsightsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
-        .toolbar {
-            if let openSettings {
-                ToolbarItem(placement: .topBarTrailing) {
-                    SettingsToolbarButton(action: openSettings)
-                }
-            }
-        }
         .onAppear {
             model.setSelectedModel(modelCatalog?.selectedModel ?? .default)
         }

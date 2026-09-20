@@ -6,7 +6,6 @@ import SwiftUI
 struct RecordHomeView: View {
     @StateObject private var model: RecordHomeViewModel
 
-    private let openSettings: () -> Void
     private let onRecordingFinished: (UUID) -> Void
     private let entryDay: Date?
     private let replacingEntryID: UUID?
@@ -28,7 +27,6 @@ struct RecordHomeView: View {
         languageModel: (any DiaryLanguageModel)? = nil,
         entryDay: Date? = nil,
         replacingEntryID: UUID? = nil,
-        openSettings: @escaping () -> Void,
         onRecordingFinished: @escaping (UUID) -> Void,
         instructionDelay: TimeInterval = 0,
         forcesReducedMotion: Bool = false,
@@ -42,7 +40,6 @@ struct RecordHomeView: View {
                 languageModel: languageModel
             )
         )
-        self.openSettings = openSettings
         self.onRecordingFinished = onRecordingFinished
         self.entryDay = entryDay
         self.replacingEntryID = replacingEntryID
@@ -83,11 +80,6 @@ struct RecordHomeView: View {
                         .padding(.bottom, 32)
                         .transition(.opacity)
                 }
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                SettingsToolbarButton(action: openSettings)
             }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -316,7 +308,6 @@ struct RecordHomeView: View {
             audioRecorder: UnavailableAudioRecorder(),
             transcriber: UnavailableTranscriber(),
             noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
-            openSettings: {},
             onRecordingFinished: { _ in },
             instructionDelay: 3600
         )
@@ -330,7 +321,6 @@ struct RecordHomeView: View {
             audioRecorder: UnavailableAudioRecorder(),
             transcriber: UnavailableTranscriber(),
             noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
-            openSettings: {},
             onRecordingFinished: { _ in },
             instructionDelay: 0
         )
@@ -344,7 +334,6 @@ struct RecordHomeView: View {
             audioRecorder: UnavailableAudioRecorder(),
             transcriber: UnavailableTranscriber(),
             noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
-            openSettings: {},
             onRecordingFinished: { _ in },
             instructionDelay: 0,
             forcesReducedMotion: true
@@ -361,7 +350,6 @@ struct RecordHomeView: View {
             transcriber: UnavailableTranscriber(),
             noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
             entryDay: pastDay,
-            openSettings: {},
             onRecordingFinished: { _ in },
             instructionDelay: 0
         )

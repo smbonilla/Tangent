@@ -10,7 +10,6 @@ struct DiaryHomeView: View {
     private let openEntry: (UUID) -> Void
     private let openRecord: () -> Void
     private let openEmptyDay: (Date) -> Void
-    private let openSettings: () -> Void
 
     init(
         noteStore: any NoteStore,
@@ -18,8 +17,7 @@ struct DiaryHomeView: View {
         calendar: Calendar = .autoupdatingCurrent,
         openEntry: @escaping (UUID) -> Void,
         openRecord: @escaping () -> Void,
-        openEmptyDay: @escaping (Date) -> Void,
-        openSettings: @escaping () -> Void
+        openEmptyDay: @escaping (Date) -> Void
     ) {
         _model = StateObject(
             wrappedValue: DiaryHomeViewModel(
@@ -32,7 +30,6 @@ struct DiaryHomeView: View {
         self.openEntry = openEntry
         self.openRecord = openRecord
         self.openEmptyDay = openEmptyDay
-        self.openSettings = openSettings
     }
 
     var body: some View {
@@ -44,11 +41,6 @@ struct DiaryHomeView: View {
             }
         }
         .background(Color.tangentWash)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                SettingsToolbarButton(action: openSettings)
-            }
-        }
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .tabBar)
