@@ -32,7 +32,11 @@ final class InsightsViewModel: ObservableObject {
         let today = calendar.startOfDay(for: now)
         maximumToDate = today
         toDate = today
-        fromDate = Self.earliestDate(before: today, model: selectedModel, calendar: calendar)
+        let lastWeek = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        fromDate = max(
+            lastWeek,
+            Self.earliestDate(before: today, model: selectedModel, calendar: calendar)
+        )
     }
 
     var earliestFromDate: Date {

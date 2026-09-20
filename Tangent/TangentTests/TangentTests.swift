@@ -294,8 +294,15 @@ struct TangentTests {
             now: today
         )
         #expect(
-            calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 42
+            calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 7
         )
+        #expect(model.toDate == today)
+
+        model.setSelectedModel(.medgemma4B)
+        #expect(calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 7)
+        model.setSelectedModel(.qwen3_1_7B)
+        model.setFromDate(.distantPast)
+        #expect(calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 42)
 
         let farBack = try #require(calendar.date(byAdding: .day, value: -40, to: today))
         model.setFromDate(farBack)
@@ -304,6 +311,16 @@ struct TangentTests {
             calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 14
         )
         #expect(model.insightSpanDescription == "2 weeks")
+
+        let earlierEnd = try #require(calendar.date(byAdding: .day, value: -7, to: today))
+        model.setToDate(earlierEnd)
+        model.setFromDate(.distantPast)
+        #expect(model.toDate == earlierEnd)
+        #expect(calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 14)
+
+        model.setToDate(.distantFuture)
+        #expect(model.toDate == today)
+        #expect(calendar.dateComponents([.day], from: model.fromDate, to: model.toDate).day == 14)
     }
 
     @Test @MainActor
