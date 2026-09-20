@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 #if TANGENT_LEGACY_MLX
 import Hub
 #else
@@ -20,9 +21,25 @@ final class MLXModelCatalog: ModelCatalog {
 
     init(resources: ModelResourceGuard = ModelResourceGuard()) { self.resources = resources }
 
-    private var downloads: [SummaryModelID: Task<Void, Error>] = [:]
+    private var downloads: [SummaryModelID: Task<Void, Error>] = [:] {
+        didSet { updateIdleTimer() }
+    }
+    private var previousIdleTimerDisabled: Bool?
     private var downloadIDs: [SummaryModelID: UUID] = [:]
     private var progresses: [SummaryModelID: DownloadProgress] = [:]
+
+    private func updateIdleTimer() {
+        if downloads.isEmpty {
+            if let previousIdleTimerDisabled {
+                UIApplication.shared.isIdleTimerDisabled = previousIdleTimerDisabled
+                self.previousIdleTimerDisabled = nil
+            }
+        } else if previousIdleTimerDisabled == nil {
+            // Keep the screen awake until the last active download finishes or is cancelled.
+            previousIdleTimerDisabled = UIApplication.shared.isIdleTimerDisabled
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
+    }
 
     var selectedModel: SummaryModelID {
         SelectedModelStore.selected
