@@ -104,39 +104,24 @@ enum DemoDataSeeder {
         #endif
     }
 
-    /// Temporary DEBUG seed: one filled day five days ago so the diary
-    /// timeline shows grey empty days that can use Fill in Tangent.
+    /// Removes the temporary DEBUG dummy past day used to check Fill in Tangent.
     @MainActor
-    static func seedDummyPastDayIfNeeded(in modelContext: ModelContext) throws {
+    static func removeDummyPastDayIfNeeded(in modelContext: ModelContext) throws {
         #if DEBUG
         guard !ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
-        guard let profile = try modelContext.fetch(
-            FetchDescriptor<UserProfileRecord>(sortBy: [SortDescriptor(\.name)])
-        ).first else {
-            return
-        }
+        let dummyEntries = try modelContext.fetch(FetchDescriptor<DiaryEntryRecord>())
+            .filter { $0.promptText == dummyPastDayPrompt }
+        guard !dummyEntries.isEmpty else { return }
 
-        let entries = try modelContext.fetch(FetchDescriptor<DiaryEntryRecord>())
-            .filter { $0.profileID == profile.id }
-        if entries.contains(where: { $0.promptText == dummyPastDayPrompt }) {
-            return
+        for entry in dummyEntries {
+            if !entry.transcriptPath.isEmpty {
+                try? FileManager.default.removeItem(atPath: entry.transcriptPath)
+            }
+            modelContext.delete(entry)
         }
-
-        let calendar = Calendar.autoupdatingCurrent
-        let today = calendar.startOfDay(for: Date())
-        guard let day = calendar.date(byAdding: .day, value: -5, to: today) else { return }
-        if entries.contains(where: { calendar.isDate($0.day, inSameDayAs: day) }) {
-            return
-        }
-
-        let path = try dummyPastDayTranscriptPath()
-        modelContext.insert(DiaryEntryRecord(entry: DiaryEntry(
-            profileID: profile.id,
-            day: day,
-            promptText: dummyPastDayPrompt,
-            summaryShort: "Dummy day so the grey Fill in Tangent cards can be checked.",
-            transcriptPath: path
-        )))
+        let dummyDirectory = URL.applicationSupportDirectory
+            .appending(path: "DummyTranscripts", directoryHint: .isDirectory)
+        try? FileManager.default.removeItem(at: dummyDirectory)
         try modelContext.save()
         #endif
     }
@@ -158,19 +143,6 @@ enum DemoDataSeeder {
         let url = directory.appending(path: "tangent-\(daysAgo)-days-ago.txt")
         let transcript = "Hi. I wanted to check in about today. \(summary) I want to remember what I tried and what I learned."
         try transcript.write(to: url, atomically: true, encoding: .utf8)
-        return url.path
-    }
-
-    private static func dummyPastDayTranscriptPath() throws -> String {
-        let directory = URL.applicationSupportDirectory
-            .appending(path: "DummyTranscripts", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )
-        let url = directory.appending(path: "dummy-past-day.txt")
-        try "This is a temporary dummy transcript for checking Fill in Tangent."
-            .write(to: url, atomically: true, encoding: .utf8)
         return url.path
     }
 }

@@ -28,7 +28,7 @@ enum ProfileSeeder {
         }
         try modelContext.save()
         #if DEBUG
-        try DemoDataSeeder.seedDummyPastDayIfNeeded(in: modelContext)
+        try DemoDataSeeder.removeDummyPastDayIfNeeded(in: modelContext)
         #endif
     }
 
