@@ -6,9 +6,9 @@ struct SettingsToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "gearshape")
+            Image(systemName: "gearshape.fill")
                 .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(Color.tangentPurple)
+                .foregroundStyle(Color.gray)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
