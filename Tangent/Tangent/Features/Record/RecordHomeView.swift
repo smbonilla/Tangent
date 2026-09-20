@@ -30,7 +30,7 @@ struct RecordHomeView: View {
         replacingEntryID: UUID? = nil,
         openSettings: @escaping () -> Void,
         onRecordingFinished: @escaping (UUID) -> Void,
-        instructionDelay: TimeInterval = 3,
+        instructionDelay: TimeInterval = 0,
         forcesReducedMotion: Bool = false,
         isActive: Bool = true
     ) {
