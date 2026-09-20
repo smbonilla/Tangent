@@ -72,8 +72,8 @@ struct RecordHomeView: View {
                 Spacer()
                 if case .failed(let message) = model.phase {
                     Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(Color.tangentInk.opacity(0.6))
+                        .font(.system(.body, weight: .medium))
+                        .foregroundStyle(.gray)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
                         .padding(.bottom, 32)
@@ -129,8 +129,8 @@ struct RecordHomeView: View {
             if model.isRecording, let question = model.currentPromptQuestion {
                 Text(question)
                     .id(question)
-                    .font(.system(.title3, weight: .regular))
-                    .foregroundStyle(Color.tangentInk.opacity(0.78))
+                    .font(.system(.body, weight: .medium))
+                    .foregroundStyle(.gray)
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
                     .frame(maxWidth: 320)
@@ -196,30 +196,82 @@ struct RecordHomeView: View {
     }
 
     private var statusBelowOrb: some View {
-        ZStack {
-            Button(action: startRecordingIfIdle) {
-                Text("Tap to record")
-                    .font(.body.weight(.medium))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .opacity(showsTapToRecord ? 1 : 0)
-            .allowsHitTesting(showsTapToRecord)
-            .accessibilityHidden(!showsTapToRecord)
-            .accessibilityLabel("Tap to record")
+        Button(action: startRecordingIfIdle) {
+            VStack(spacing: 2) {
+                ZStack {
+                    Text("Tap to record")
+                        .font(.system(.body, weight: .medium))
+                        .opacity(showsTapToRecord ? 1 : 0)
 
-            Text("Recording · \(model.formattedElapsed)")
-                .font(.body.monospacedDigit())
-                .opacity(model.isRecording ? 1 : 0)
-                .allowsHitTesting(false)
-                .accessibilityHidden(!model.isRecording)
-                .accessibilityLabel("Recording, \(model.formattedElapsed)")
+                    Text("Recording · \(model.formattedElapsed)")
+                        .font(.system(.body, weight: .medium).monospacedDigit())
+                        .opacity(model.isRecording ? 1 : 0)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+
+                if let pastDayCaption {
+                    Text(pastDayCaption)
+                        .font(.system(.footnote, weight: .medium))
+                        .multilineTextAlignment(.center)
+                        .opacity(showsPastDayCaption ? 1 : 0)
+                }
+            }
+            .foregroundStyle(.gray)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+            .contentShape(Rectangle())
         }
-        .foregroundStyle(Color.tangentInk.opacity(0.72))
+        .buttonStyle(.plain)
+        .allowsHitTesting(showsTapToRecord)
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(showsTapToRecord ? .isButton : [])
+        .accessibilityHidden(!showsTapToRecord && !model.isRecording)
+        .accessibilityLabel(
+            showsTapToRecord
+                ? tapToRecordAccessibilityLabel
+                : recordingAccessibilityLabel
+        )
         .animation(chromeAnimation, value: showsTapToRecord)
         .animation(chromeAnimation, value: model.isRecording)
+    }
+
+    /// Shown only when filling in a day that is not today.
+    private var pastRecordingDay: Date? {
+        guard let entryDay, !Calendar.autoupdatingCurrent.isDateInToday(entryDay) else {
+            return nil
+        }
+        return entryDay
+    }
+
+    private var pastDayFormat: Date.FormatStyle {
+        .dateTime.day().month(.abbreviated).year()
+    }
+
+    private var formattedPastDay: String? {
+        pastRecordingDay?.formatted(pastDayFormat)
+    }
+
+    private var pastDayCaption: String? {
+        formattedPastDay.map { "for \($0)" }
+    }
+
+    private var showsPastDayCaption: Bool {
+        pastDayCaption != nil && (showsTapToRecord || model.isRecording)
+    }
+
+    private var tapToRecordAccessibilityLabel: String {
+        if let pastDayCaption {
+            return "Tap to record \(pastDayCaption)"
+        }
+        return "Tap to record"
+    }
+
+    private var recordingAccessibilityLabel: String {
+        if let pastDayCaption {
+            return "Recording \(pastDayCaption), \(model.formattedElapsed)"
+        }
+        return "Recording, \(model.formattedElapsed)"
     }
 
     private func startRecordingIfIdle() {
@@ -232,8 +284,14 @@ struct RecordHomeView: View {
     private var orbAccessibilityLabel: String {
         switch model.phase {
         case .idle, .failed:
+            if let formattedPastDay {
+                return "Start recording for \(formattedPastDay)"
+            }
             return "Start recording"
         case .recording:
+            if let formattedPastDay {
+                return "Recording for \(formattedPastDay)"
+            }
             return "Recording"
         }
     }
@@ -278,6 +336,22 @@ struct RecordHomeView: View {
             onRecordingFinished: { _ in },
             instructionDelay: 0,
             forcesReducedMotion: true
+        )
+    }
+}
+
+#Preview("Past day") {
+    let container = try! TangentModelContainer.make(inMemory: true)
+    let pastDay = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+    NavigationStack {
+        RecordHomeView(
+            audioRecorder: UnavailableAudioRecorder(),
+            transcriber: UnavailableTranscriber(),
+            noteStore: SwiftDataNoteStore(modelContext: container.mainContext),
+            entryDay: pastDay,
+            openSettings: {},
+            onRecordingFinished: { _ in },
+            instructionDelay: 0
         )
     }
 }

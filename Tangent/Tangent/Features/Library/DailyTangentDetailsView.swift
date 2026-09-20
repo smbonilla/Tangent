@@ -8,10 +8,11 @@ struct DailyTangentDetailsView: View {
     @FocusState private var focusedField: Field?
     @State private var isEditing = false
     @State private var showsSummaryEditor = false
+    @State private var showsRedoConfirmation = false
     @State private var draftSummary = ""
     @State private var draftTranscript = ""
     private let calendar: Calendar
-    private let redoToday: (() -> Void)?
+    private let redo: ((Date) -> Void)?
     private let openSettings: (() -> Void)?
 
     init(
@@ -21,7 +22,7 @@ struct DailyTangentDetailsView: View {
         diaryID: UUID,
         streamsTranscript: Bool = false,
         calendar: Calendar = .autoupdatingCurrent,
-        redoToday: (() -> Void)? = nil,
+        redo: ((Date) -> Void)? = nil,
         openSettings: (() -> Void)? = nil
     ) {
         _model = StateObject(
@@ -34,7 +35,7 @@ struct DailyTangentDetailsView: View {
             )
         )
         self.calendar = calendar
-        self.redoToday = redoToday
+        self.redo = redo
         self.openSettings = openSettings
     }
 
@@ -64,12 +65,16 @@ struct DailyTangentDetailsView: View {
 
                             transcriptSection
 
-                            if calendar.isDateInToday(entry.day), let redoToday {
+                            if let redo {
                                 TangentFillButton(
-                                    title: "Redo today’s Tangent",
-                                    hint: "Opens a new recording for today",
-                                    identifier: "redo-today",
-                                    action: redoToday
+                                    title: calendar.isDateInToday(entry.day)
+                                        ? "Redo today’s Tangent"
+                                        : "Redo Tangent",
+                                    hint: shouldConfirmRedo
+                                        ? "Asks before overwriting this day’s Tangent"
+                                        : "Opens a new recording for this day",
+                                    identifier: "redo-tangent",
+                                    action: confirmOrRedo
                                 )
                             }
                         }
@@ -112,6 +117,16 @@ struct DailyTangentDetailsView: View {
                     .accessibilityIdentifier("save-entry")
                 }
             }
+        }
+        .alert("Are you sure?", isPresented: $showsRedoConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Overwrite", role: .destructive) {
+                if let day = model.entry?.day {
+                    redo?(day)
+                }
+            }
+        } message: {
+            Text("This will overwrite the Tangent saved for this day.")
         }
         .task {
             await model.start()
@@ -319,6 +334,21 @@ struct DailyTangentDetailsView: View {
         focusedField = field
     }
 
+    private var shouldConfirmRedo: Bool {
+        if model.isTranscribing { return true }
+        guard let transcript = model.transcript else { return false }
+        return !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func confirmOrRedo() {
+        guard let day = model.entry?.day else { return }
+        if shouldConfirmRedo {
+            showsRedoConfirmation = true
+        } else {
+            redo?(day)
+        }
+    }
+
     private func dismissKeyboard() {
         focusedField = nil
     }
@@ -338,47 +368,6 @@ struct DailyTangentDetailsView: View {
         DailyTangentDetailsView(noteStore: store, diaryID: UUID())
     }
     .environmentObject(AppPreferences(defaults: UserDefaults(suiteName: "TangentPreview")!))
-}
-
-struct EmptyDayDetailsView: View {
-    let date: Date
-    let fillIn: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text(
-                date,
-                format: .dateTime
-                    .weekday(.wide)
-                    .day()
-                    .month(.wide)
-                    .year()
-            )
-            .font(.system(.title2, design: .serif, weight: .medium))
-            .foregroundStyle(Color.tangentInk)
-
-            Text("No Tangent is saved for this day yet.")
-                .font(.system(.body, design: .serif))
-                .foregroundStyle(Color.tangentInk.opacity(0.6))
-                .lineSpacing(6)
-
-            TangentFillButton(
-                title: "Fill in Tangent",
-                hint: "Opens a new recording for this day",
-                identifier: "fill-in-tangent",
-                action: fillIn
-            )
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
-        .padding(.bottom, 40)
-        .frame(maxWidth: 560, alignment: .leading)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.tangentWash)
-        .navigationTitle("Daily Tangent")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
-    }
 }
 
 struct TangentFillButton: View {

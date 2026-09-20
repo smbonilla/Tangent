@@ -23,7 +23,7 @@ struct ContentView: View {
                     modelCatalog: dependencies.modelCatalog,
                     openEntry: { diaryPath.append(.details($0)) },
                     openRecord: { startRecording(on: nil) },
-                    openEmptyDay: { diaryPath.append(.emptyDay($0)) },
+                    openEmptyDay: { startRecording(on: $0) },
                     openSettings: { diaryPath.append(.settings) },
                     openDiary: showDiary
                 )
@@ -36,7 +36,7 @@ struct ContentView: View {
                             transcriber: dependencies.transcriber,
                             languageModel: dependencies.languageModel,
                             diaryID: diaryID,
-                            redoToday: { startRecording(on: nil) },
+                            redo: { startRecording(on: $0) },
                             openSettings: { diaryPath.append(.settings) }
                         )
                     case .freshRecording(let diaryID):
@@ -46,13 +46,9 @@ struct ContentView: View {
                             languageModel: dependencies.languageModel,
                             diaryID: diaryID,
                             streamsTranscript: true,
-                            redoToday: { startRecording(on: nil) },
+                            redo: { startRecording(on: $0) },
                             openSettings: { diaryPath.append(.settings) }
                         )
-                    case .emptyDay(let date):
-                        EmptyDayDetailsView(date: date) {
-                            startRecording(on: date)
-                        }
                     case .settings:
                         SettingsView(
                             noteStore: dependencies.noteStore,
@@ -192,7 +188,6 @@ private enum PrimaryTab: Hashable {
 private enum DiaryRoute: Hashable {
     case details(UUID)
     case freshRecording(UUID)
-    case emptyDay(Date)
     case settings
 }
 

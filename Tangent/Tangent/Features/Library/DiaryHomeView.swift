@@ -133,7 +133,7 @@ struct DiaryHomeView: View {
                     .frame(maxWidth: .infinity)
             }
             .accessibilityLabel("\(fullDate(day.date)). Fill in Tangent")
-            .accessibilityHint("Opens this day so you can add a Tangent")
+            .accessibilityHint("Opens the Record Tangent screen for this day")
         }
     }
 
