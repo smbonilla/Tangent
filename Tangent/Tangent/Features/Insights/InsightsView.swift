@@ -94,6 +94,7 @@ struct InsightsView: View {
                 in: model.earliestFromDate...model.toDate,
                 displayedComponents: .date
             )
+            .environment(\.locale, insightDateLocale)
 
             DatePicker(
                 "To",
@@ -104,6 +105,7 @@ struct InsightsView: View {
                 in: ...model.latestToDate,
                 displayedComponents: .date
             )
+            .environment(\.locale, insightDateLocale)
 
             Button {
                 Task {
@@ -196,13 +198,15 @@ struct InsightsView: View {
         .accessibilityElement(children: .combine)
     }
 
+    private var insightDateLocale: Locale { Locale(identifier: "en_GB") }
+
+    private var insightDateFormat: Date.FormatStyle {
+        .dateTime.day().month(.abbreviated).year().locale(insightDateLocale)
+    }
+
     private func rangeText(for insight: Insight) -> String {
-        let from = insight.generatedFrom.formatted(
-            .dateTime.day().month(.abbreviated).year()
-        )
-        let to = insight.generatedTo.formatted(
-            .dateTime.day().month(.abbreviated).year()
-        )
+        let from = insight.generatedFrom.formatted(insightDateFormat)
+        let to = insight.generatedTo.formatted(insightDateFormat)
         return from == to ? from : "\(from) – \(to)"
     }
 }

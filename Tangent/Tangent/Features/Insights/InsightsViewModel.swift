@@ -130,10 +130,15 @@ final class InsightsViewModel: ObservableObject {
         }
     }
 
-    /// Names the range back to the reader, e.g. "7 to 13 September".
+    /// Names the range back to the reader, e.g. "9 Sep 2026 to 16 Sep 2026".
     private var periodDescription: String {
-        let from = fromDate.formatted(.dateTime.day().month(.wide))
-        let to = toDate.formatted(.dateTime.day().month(.wide))
+        let format = Date.FormatStyle()
+            .day()
+            .month(.abbreviated)
+            .year()
+            .locale(Locale(identifier: "en_GB"))
+        let from = fromDate.formatted(format)
+        let to = toDate.formatted(format)
         return from == to ? from : "\(from) to \(to)"
     }
 
