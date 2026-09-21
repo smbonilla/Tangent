@@ -779,7 +779,8 @@ struct TangentTests {
 
     @Test
     func supportedModelsHaveStableIdentitiesAndGemma3nChoice() {
-        #expect(SummaryModelID.default == .qwen3_0_6B)
+        #expect(SummaryModelID.default == .qwen3_1_7B)
+        #expect(SummaryModelID.allCases.first == .qwen3_1_7B)
         #expect(Set(SummaryModelID.allCases.map(\.repoID)).count == SummaryModelID.allCases.count)
         #expect(SummaryModelID.qwen3_0_6B.approximateDownloadBytes < 400_000_000)
         #expect(SummaryModelID.gemma3n_E2B.approximateDownloadBytes == 2_550_000_000)

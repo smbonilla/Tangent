@@ -43,6 +43,8 @@ struct AIModelSetupView: View {
     private func modelRow(_ summaryModel: SummaryModelID) -> some View {
         let state = model.modelStates[summaryModel] ?? .notDownloaded
         let isSelected = model.selectedModel == summaryModel
+        // Limit the first beta's UI without restricting backend model support.
+        let isAvailableInBeta = summaryModel == .qwen3_1_7B
 
         VStack(alignment: .leading, spacing: 10) {
             Button {
@@ -68,6 +70,9 @@ struct AIModelSetupView: View {
             modelStatus(summaryModel, state: state)
         }
         .padding(.vertical, 4)
+        .disabled(!isAvailableInBeta)
+        .saturation(isAvailableInBeta ? 1 : 0)
+        .opacity(isAvailableInBeta ? 1 : 0.4)
     }
 
     /// Everything about the weights — where they are and what to do about it —

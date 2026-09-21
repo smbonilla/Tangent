@@ -6,9 +6,9 @@ import Foundation
 /// each model live in `Services/Intelligence` so that features, settings and
 /// persistence can talk about a model without importing MLX.
 enum SummaryModelID: String, CaseIterable, Identifiable, Sendable {
+    case qwen3_1_7B = "qwen3-1.7b-4bit"
     case qwen3_0_6B = "qwen3-0.6b-4bit"
     case gemma3n_E2B = "gemma3n-e2b-it-lm-4bit"
-    case qwen3_1_7B = "qwen3-1.7b-4bit"
     case gemma3_1B = "gemma3-1b-qat-4bit"
     case medgemma4B = "medgemma-1.5-4b-it-4bit"
 
@@ -95,5 +95,5 @@ enum SummaryModelID: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    static let `default`: SummaryModelID = .qwen3_0_6B
+    static let `default`: SummaryModelID = .qwen3_1_7B
 }

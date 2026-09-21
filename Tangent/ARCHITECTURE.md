@@ -99,12 +99,14 @@ inference stay on the device; network access is used to download model weights.
 The diary stores one short summary per entry. `ProfileSeeder` creates a profile
 and the default prompts without resetting user edits.
 
-Settings edits the user's name, interests, and concerns. The model catalog offers Qwen3 0.6B, Gemma 3n E2B, Qwen3 1.7B, Gemma 3 1B,
-and MedGemma 1.5 4B. Qwen3 uses its tokenizer's non-thinking mode. Model choice
+Settings edits the user's name, interests, and concerns. The model catalog offers Qwen3 1.7B (first and default), Qwen3 0.6B, Gemma 3n E2B, Gemma 3 1B,
+and MedGemma 1.5 4B. For the first beta, onboarding and Settings grey out and disable
+all controls for models other than Qwen3 1.7B; their backend support remains intact.
+Qwen3 uses its tokenizer's non-thinking mode. Model choice
 is stored separately from diary data, so switching does not change diary entries.
 Gemma 3n E2B uses the text-only `mlx-community/gemma-3n-E2B-it-lm-4bit`
 weights (about 2.55 GB) through the LLM factory. Saved selections of the removed
-Qwen2.5 0.5B model fall back to the default Qwen3 0.6B.
+Qwen2.5 0.5B model fall back to the default Qwen3 1.7B.
 
 ## Adding workflows
 
