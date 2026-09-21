@@ -21,11 +21,25 @@ AI starts off. Without it, your diary contains just your transcripts. Choose and
 Your diary, transcription, and AI processing stay on your device. Model downloads
 come from Hugging Face when you choose to download them.
 
-iOS asks for Speech Recognition permission with a standard warning about sending
-speech to Apple. Tangent uses on-device recognition only: it checks device support
-and requires local processing for every request. If unavailable, transcription
-stops instead of uploading audio.
-[Apple explains this setting here](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
+Transcription uses Apple's on-device `SpeechAnalyzer` and `SpeechTranscriber`.
+Speech language assets may download from Apple when needed; recordings are never
+uploaded. Only microphone permission is requested.
+[Apple documents the distinction from legacy speech recognition here](https://developer.apple.com/documentation/speech/asking-permission-to-use-speech-recognition).
+
+## Long recordings
+
+Pauses do not end a recording. One speech session processes the full timeline,
+and finalized segments are saved as they arrive. Microphone audio is continuously
+written to a temporary 16-bit PCM CAF file, with a fixed limit on queued buffers.
+CAF avoids depending on an MP4 index being finalized at Stop. The temporary audio
+uses approximately 5.8 MB per minute at 48 kHz mono; it is removed only after the
+complete transcript and diary entry have both been saved.
+
+If live recognition cannot keep up or speech assets are missing, the full saved
+file is transcribed using Apple's demand-driven file reader. Audio interruptions
+and write failures stop capture and preserve the saved prefix. A recovery journal
+makes interrupted recordings discoverable in the diary after relaunch. Recording
+can continue with the screen locked through the audio background mode.
 
 ## Make it your own
 
@@ -42,15 +56,15 @@ in the app; it does not accept arbitrary repository names.
 
 ## Build
 
-Use an Apple Silicon Mac with Xcode and Python 3. From the repository root, run:
+Use an Apple Silicon Mac with Xcode 27 (including its iOS 27 platform and Metal toolchain) and Python 3. From the repository root, run:
 
 ```sh
 python3 scripts/environment.py auto --resolve --open
 ```
 
-The helper selects dependencies for your Xcode version. Select the **Tangent**
+The helper checks the toolchain and uses the pinned dependencies in the shared project. Select the **Tangent**
 scheme, configure your signing team for a physical device, and run.
-The app requires iOS 18.2 or later. AI needs a supported physical device;
+The app requires iOS 27 or later. AI needs a supported physical device;
 the simulator can run the interface but not model inference.
 
 See [architecture](Tangent/ARCHITECTURE.md) for the code layout.

@@ -2,205 +2,121 @@ import AVFoundation
 import Foundation
 import Speech
 
-/// Only one recognition task runs at a time. Rotate before Speech's request
-/// duration limit, buffering at most 15 seconds while the old task finalizes.
-/// If recognition cannot keep up, fail explicitly and use the saved audio.
+/// Owns one analyzer for the entire recording. Audio waiting for recognition
+/// is strictly bounded; an overflow invalidates live results, leaving the disk
+/// recording available for complete, demand-driven file transcription.
 final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "Tangent.live-speech")
-    private let makeWindow: (@escaping @Sendable (SpeechRecognitionUpdate?, Error?) -> Void) -> any SpeechRecognitionWindow
-    private let onPartial: @Sendable (String) -> Void
-    private let finalizationTimeout: TimeInterval
-    private let windowDuration: TimeInterval
-    private var request: (any SpeechRecognitionWindow)?
-    private var timeout: DispatchWorkItem?
-    private var accumulator = SpeechTranscriptAccumulator()
-    private var completedText = ""
-    private var windowSeconds: TimeInterval = 0
-    private var tail: [AVAudioPCMBuffer] = []
-    private var tailSeconds: TimeInterval = 0
-    private var pending: [AVAudioPCMBuffer] = []
-    private var pendingSeconds: TimeInterval = 0
-    private var hasPendingNewAudio = false
-    private var closing = false
-    private var finishing = false
+    private let analyzer: SpeechAnalyzer
+    private let input: AsyncThrowingStream<AnalyzerInput, Error>.Continuation
+    private let resultTask: Task<String, Error>
+    private let lock = NSLock()
+    private let converter: AnalyzerInputConverter
     private var failure: Error?
-    private var result: String?
-    private var completion: CheckedContinuation<String, Error>?
-    private var generation = 0
+    private var ended = false
 
-    convenience init(recognizer: SFSpeechRecognizer, finalizationTimeout: TimeInterval = 15, onPartial: @escaping @Sendable (String) -> Void = { _ in }) {
-        self.init(finalizationTimeout: finalizationTimeout, onPartial: onPartial) { callback in
-            OnDeviceSpeechWindow(recognizer: recognizer, callback: callback)
+    private init(analyzer: SpeechAnalyzer, input: AsyncThrowingStream<AnalyzerInput, Error>.Continuation,
+                 format: AVAudioFormat, resultTask: Task<String, Error>) {
+        self.analyzer = analyzer
+        self.input = input
+        self.converter = AnalyzerInputConverter(analyzerFormat: format)
+        self.resultTask = resultTask
+    }
+
+    static func start(transcriber: SpeechTranscriber, onPartial: @escaping @Sendable (String) -> Void) async throws -> LiveSpeechSession {
+        let analyzer = SpeechAnalyzer(modules: [transcriber])
+        guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber]) else {
+            throw TranscriptionError.recognizerUnavailable
+        }
+        let (stream, input) = AsyncThrowingStream<AnalyzerInput, Error>.makeStream(bufferingPolicy: .bufferingOldest(32))
+        let results = Task {
+            do {
+                var transcript = SpeechTranscriptAccumulator()
+                for try await result in transcriber.results {
+                    try Task.checkCancellation()
+                    transcript.appendFinal(String(result.text.characters))
+                    onPartial(transcript.text)
+                }
+                return transcript.text
+            } catch {
+                // Stop input consumption promptly if result delivery or a
+                // checkpoint fails; do not keep processing an unread stream.
+                await analyzer.cancelAndFinishNow()
+                throw error
+            }
+        }
+        do {
+            try await analyzer.prepareToAnalyze(in: format)
+            try await analyzer.start(inputSequence: stream)
+            return LiveSpeechSession(analyzer: analyzer, input: input, format: format, resultTask: results)
+        } catch {
+            input.finish(throwing: error)
+            results.cancel()
+            await analyzer.cancelAndFinishNow()
+            throw error
         }
     }
 
-    init(
-        windowDuration: TimeInterval = 45,
-        finalizationTimeout: TimeInterval = 15,
-        onPartial: @escaping @Sendable (String) -> Void = { _ in },
-        makeWindow: @escaping (@escaping @Sendable (SpeechRecognitionUpdate?, Error?) -> Void) -> any SpeechRecognitionWindow
-    ) {
-        self.onPartial = onPartial
-        self.windowDuration = windowDuration
-        self.finalizationTimeout = finalizationTimeout
-        self.makeWindow = makeWindow
-    }
-
     func append(_ buffer: AVAudioPCMBuffer) {
-        queue.sync {
-            guard !finishing, failure == nil, result == nil else { return }
-            if closing {
-                pending.append(buffer)
-                pendingSeconds += duration(buffer)
-                hasPendingNewAudio = true
-                if pendingSeconds > 15 { fail(TranscriptionError.recognitionFellBehind) }
-            } else {
-                if request == nil { beginWindow() }
-                feed(buffer)
+        // Called by the disk writer, never the audio render thread. The lock
+        // protects conversion and end-of-input against cancellation/Stop.
+        lock.withLock {
+            guard !ended, failure == nil else { return }
+            do {
+                // Also bound bytes/duration per queued element, independently
+                // of the hardware's chosen tap-buffer size.
+                guard buffer.frameLength <= 16_384 else { throw TranscriptionError.recognitionFellBehind }
+                for converted in try converter.convert(buffer, at: nil) {
+                    try enqueue(converted)
+                }
+            } catch {
+                failure = error
+                input.finish(throwing: error)
+                resultTask.cancel()
+                Task { await analyzer.cancelAndFinishNow() }
             }
         }
     }
 
     func finish() async throws -> String {
         try await withTaskCancellationHandler {
-            try Task.checkCancellation()
-            return try await withCheckedThrowingContinuation { continuation in
-                queue.async {
-                    if let failure = self.failure {
-                        continuation.resume(throwing: failure)
-                    } else if let result = self.result {
-                        continuation.resume(returning: result)
-                    } else {
-                        guard self.completion == nil else {
-                            continuation.resume(throwing: TranscriptionError.recognitionInterrupted)
-                            return
-                        }
-                        self.completion = continuation
-                        self.finishing = true
-                        if self.request != nil { self.closeWindow() }
-                        else { self.complete() }
-                    }
+            do {
+                try lock.withLock {
+                    if let failure { throw failure }
+                    guard !ended else { throw TranscriptionError.recognitionInterrupted }
+                    ended = true
+                    // Convert held-over samples before closing input, including
+                    // the last word. This is part of Apple's converter contract.
+                    for converted in try converter.flush() { try enqueue(converted) }
+                    input.finish()
                 }
+                try Task.checkCancellation()
+                try await analyzer.finalizeAndFinishThroughEndOfInput()
+                let text = try await resultTask.value
+                guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw TranscriptionError.emptyTranscript }
+                return text
+            } catch {
+                cancel()
+                throw error
             }
-        } onCancel: {
-            self.cancel()
-        }
+        } onCancel: { self.cancel() }
     }
 
     func cancel() {
-        queue.async { self.fail(CancellationError()) }
-    }
-
-    private func beginWindow() {
-        generation += 1
-        let currentGeneration = generation
-        accumulator = SpeechTranscriptAccumulator()
-        windowSeconds = 0
-        tail = []
-        tailSeconds = 0
-        closing = false
-        request = makeWindow { [weak self] result, error in
-            guard let self else { return }
-            self.queue.async {
-                guard self.generation == currentGeneration, self.failure == nil,
-                      self.request != nil else { return }
-                if let result {
-                    self.accumulator.update(
-                        text: result.text, start: result.start, end: result.end,
-                        isStable: result.isStable
-                    )
-                    self.onPartial(TranscriptWindowJoiner.join(self.completedText, self.accumulator.text))
-                    if result.isFinal {
-                        // An unsolicited final result could have ignored audio
-                        // still arriving. Never publish it as a complete diary.
-                        guard self.closing else {
-                            self.fail(TranscriptionError.recognitionInterrupted)
-                            return
-                        }
-                        self.finishWindow()
-                        return
-                    }
-                }
-                if let error {
-                    let nsError = error as NSError
-                    if self.closing, nsError.domain == "kAFAssistantErrorDomain", nsError.code == 1110,
-                       self.accumulator.text.isEmpty {
-                        self.finishWindow() // A window containing only silence.
-                    } else {
-                        self.fail(error)
-                    }
-                }
-            }
+        lock.withLock {
+            ended = true
+            if failure == nil { failure = CancellationError() }
+            input.finish(throwing: CancellationError())
+            resultTask.cancel()
         }
+        Task { await analyzer.cancelAndFinishNow() }
     }
 
-    private func feed(_ buffer: AVAudioPCMBuffer) {
-        request?.append(buffer)
-        let seconds = duration(buffer)
-        windowSeconds += seconds
-        tail.append(buffer)
-        tailSeconds += seconds
-        while tail.count > 1, tailSeconds - duration(tail[0]) >= 1 {
-            tailSeconds -= duration(tail.removeFirst())
+    private func enqueue(_ audio: AnalyzerInput) throws {
+        switch input.yield(audio) {
+        case .enqueued: break
+        case .dropped: throw TranscriptionError.recognitionFellBehind
+        case .terminated: throw TranscriptionError.recognitionInterrupted
+        @unknown default: throw TranscriptionError.recognitionInterrupted
         }
-        if windowSeconds >= windowDuration { closeWindow() }
-    }
-
-    private func closeWindow() {
-        guard !closing, let request else { return }
-        closing = true
-        pending = tail
-        pendingSeconds = tailSeconds
-        hasPendingNewAudio = false
-        request.endAudio()
-        let timeout = DispatchWorkItem { [weak self] in
-            self?.fail(TranscriptionError.recognitionTimedOut)
-        }
-        self.timeout = timeout
-        queue.asyncAfter(deadline: .now() + finalizationTimeout, execute: timeout)
-    }
-
-    private func finishWindow() {
-        timeout?.cancel()
-        timeout = nil
-        completedText = TranscriptWindowJoiner.join(completedText, accumulator.text)
-        request = nil
-        closing = false
-        if finishing && !hasPendingNewAudio {
-            complete()
-            return
-        }
-        let buffered = pending
-        pending = []
-        pendingSeconds = 0
-        hasPendingNewAudio = false
-        beginWindow()
-        for buffer in buffered { feed(buffer) }
-        if finishing { closeWindow() }
-    }
-
-    private func complete() {
-        result = completedText
-        pending = []
-        tail = []
-        completion?.resume(returning: completedText)
-        completion = nil
-    }
-
-    private func fail(_ error: Error) {
-        guard failure == nil, result == nil else { return }
-        failure = error
-        timeout?.cancel()
-        timeout = nil
-        request?.cancel()
-        request = nil
-        pending = []
-        tail = []
-        completion?.resume(throwing: error)
-        completion = nil
-    }
-
-    private func duration(_ buffer: AVAudioPCMBuffer) -> TimeInterval {
-        Double(buffer.frameLength) / buffer.format.sampleRate
     }
 }

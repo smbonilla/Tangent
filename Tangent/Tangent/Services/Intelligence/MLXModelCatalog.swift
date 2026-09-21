@@ -1,11 +1,7 @@
 import Foundation
 import UIKit
-#if TANGENT_LEGACY_MLX
-import Hub
-#else
 import HuggingFace
 import MLXHuggingFace
-#endif
 import MLXLMCommon
 import Tokenizers
 
@@ -76,26 +72,6 @@ final class MLXModelCatalog: ModelCatalog {
         downloadIDs[model] = downloadID
         progresses[model] = DownloadProgress(completedBytes: 0, totalBytes: 0)
         let task = Task<Void, Error> { [weak self] in
-            #if TANGENT_LEGACY_MLX
-            _ = try await ModelStorage.client().snapshot(
-                from: model.repoID,
-                matching: ["*.safetensors", "*.json", "*.model", "*.jinja", "*.txt"],
-                progressHandler: { progress in
-                    let update = DownloadProgress(
-                        completedBytes: 0,
-                        totalBytes: 0,
-                        completedFraction: progress.fractionCompleted
-                    )
-                    Task { @MainActor in
-                        guard let self, self.downloadIDs[model] == downloadID else { return }
-                        self.progresses[model] = update
-                        onProgress(update)
-                    }
-                }
-            )
-            try Task.checkCancellation()
-            try ModelStorage.markDownloaded(model)
-            #else
             _ = try await resolve(
                 configuration: model.configuration,
                 from: #hubDownloader(ModelStorage.client()),
@@ -115,7 +91,6 @@ final class MLXModelCatalog: ModelCatalog {
                     }
                 }
             )
-            #endif
         }
         downloads[model] = task
 

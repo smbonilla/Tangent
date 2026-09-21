@@ -1,9 +1,5 @@
 import Foundation
-#if TANGENT_LEGACY_MLX
-import Hub
-#else
 import HuggingFace
-#endif
 
 /// Where Tangent keeps downloaded model weights, and what it knows about them.
 ///
@@ -36,43 +32,6 @@ enum ModelStorage {
         return directory
     }()
 
-    #if TANGENT_LEGACY_MLX
-    static func client() -> HubApi {
-        HubApi(downloadBase: directory.appending(path: "legacy"), useOfflineMode: false)
-    }
-
-    static func modelDirectory(_ model: SummaryModelID) -> URL {
-        client().localRepoLocation(Hub.Repo(id: model.repoID))
-    }
-
-    private static func completionMarker(_ model: SummaryModelID) -> URL {
-        modelDirectory(model).appending(path: ".tangent-download-complete")
-    }
-
-    static func markDownloaded(_ model: SummaryModelID) throws {
-        try Data().write(to: completionMarker(model), options: .atomic)
-    }
-
-    static func isDownloaded(_ model: SummaryModelID) -> Bool {
-        let files = (try? FileManager.default.contentsOfDirectory(
-            at: modelDirectory(model), includingPropertiesForKeys: nil
-        )) ?? []
-        return FileManager.default.fileExists(atPath: completionMarker(model).path)
-            && files.contains { $0.pathExtension == "safetensors" }
-            && files.contains { $0.lastPathComponent == "config.json" }
-    }
-
-    static func bytesOnDisk(_ model: SummaryModelID) -> Int64 {
-        size(of: modelDirectory(model))
-    }
-
-    static func remove(_ model: SummaryModelID) throws {
-        let url = modelDirectory(model)
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-    }
-    #else
     static var cache: HubCache {
         HubCache(cacheDirectory: directory)
     }
@@ -125,7 +84,6 @@ enum ModelStorage {
         }
     }
 
-    #endif
 
     private static func size(of directory: URL) -> Int64 {
         let keys: [URLResourceKey] = [.totalFileAllocatedSizeKey, .isRegularFileKey]

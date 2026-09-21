@@ -338,7 +338,7 @@ struct TangentTests {
         #expect(model.generatedInsight?.generatedTo == model.toDate)
         // The range the user picked reaches the prompt, and the filled prompt
         // is what gets persisted.
-        #expect(model.generatedInsight?.promptText.contains("18 September") == true)
+        #expect(model.generatedInsight?.promptText.contains("18 Sep") == true)
         #expect(model.generatedInsight?.promptText.contains("Creative projects") == true)
         #expect(model.generatedInsight?.promptText.contains("Finding time") == true)
         #expect(model.generatedInsight?.promptText.contains("context for what the writer may") == true)

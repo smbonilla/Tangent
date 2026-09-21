@@ -7,6 +7,7 @@ import SwiftUI
 struct TangentApp: App {
     private let modelContainer: ModelContainer
     private let dependencies: AppDependencies
+    private let interruptedRecordings: [PendingRecording]
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var preferences: AppPreferences
 
@@ -56,6 +57,9 @@ struct TangentApp: App {
                 try DemoDataSeeder.seedMultipleRecordingsForUITesting(in: modelContainer.mainContext)
             }
             #endif
+            // Snapshot only at launch; scene changes must not recover the
+            // recording currently being captured in this process.
+            interruptedRecordings = isUITesting ? [] : ((try? PendingRecording.loadAll()) ?? [])
             dependencies = AppDependencies(
                 noteStore: SwiftDataNoteStore(
                     modelContext: modelContainer.mainContext
@@ -101,6 +105,10 @@ struct TangentApp: App {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--ui-testing") { return }
                 #endif
+                for recording in interruptedRecordings {
+                    // Keep the journal on any failure so the next launch retries.
+                    try? await recording.recover(in: dependencies.noteStore)
+                }
                 if preferences.onboardingCompleted {
                     await RecordingPermissions.requestIfNeeded()
                 }

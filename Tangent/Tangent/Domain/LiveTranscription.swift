@@ -3,6 +3,7 @@ import Foundation
 
 /// A single microphone capture supplies both the saved audio and recognition.
 protocol LiveAudioRecorder: AudioRecorder {
+    var onRecordingFailure: (@Sendable (Error) -> Void)? { get set }
     func startRecording(
         to destination: URL,
         onAudioBuffer: @escaping @Sendable (AVAudioPCMBuffer) -> Void

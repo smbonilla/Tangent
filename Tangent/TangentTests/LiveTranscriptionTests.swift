@@ -1,180 +1,122 @@
 import AVFoundation
 import Foundation
+import Speech
 import SwiftData
 import Testing
 @testable import Tangent
 
 struct LiveTranscriptionTests {
     @Test
-    func audioBackupContainsEveryCapturedBuffer() throws {
-        let url = FileManager.default.temporaryDirectory.appending(path: "audio-\(UUID()).m4a")
-        defer { try? FileManager.default.removeItem(at: url) }
-        let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        let sink = RecordingAudioSink(file: try AVAudioFile(forWriting: url, settings: [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1
-        ]), onAudioBuffer: { _ in })
-        for _ in 0..<30 {
-            let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1600))
-            buffer.frameLength = 1600
-            buffer.floatChannelData?[0].initialize(repeating: 0, count: 1600)
-            sink.append(buffer)
+    func finalizedSegmentsKeepTheWholeRecordingAcrossPausesAndRepetition() {
+        var transcript = SpeechTranscriptAccumulator()
+        for text in ["The beginning.", "", " Much later.", " Thank you.", " Thank you."] {
+            transcript.appendFinal(text)
         }
-        #expect(try sink.finish() == url)
-        let recorded = try AVAudioFile(forReading: url)
-        #expect(recorded.length >= 48_000)
-        #expect(Double(recorded.length) / recorded.processingFormat.sampleRate < 3.2)
+        #expect(transcript.text == "The beginning. Much later. Thank you. Thank you.")
     }
 
     @Test
-    func keepsEarlierUtterancesWhenSpeechResultsResetAfterPauses() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "The beginning of my day.", start: 0, end: 8, isStable: true)
-        transcript.update(text: "The middle", start: 15, end: 19, isStable: false)
-        transcript.update(text: "The middle of my day.", start: 15, end: 24, isStable: true)
-        transcript.update(text: "The last ten seconds.", start: 70, end: 80, isStable: true)
-        #expect(transcript.text == "The beginning of my day. The middle of my day. The last ten seconds.")
+    func audioBackupContainsEveryAcceptedBuffer() async throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "audio-\(UUID()).caf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let sink = RecordingAudioSink(file: try Self.file(url), onAudioBuffer: { _ in })
+        for _ in 0..<30 { sink.append(AVReadOnlyAudioPCMBuffer(copying: try Self.buffer())) }
+        #expect(try await sink.finishRecording() == url)
+        #expect(try AVAudioFile(forReading: url).length == 30_000)
     }
 
     @Test
-    func keepsEarlierSpeechWhenAnUtteranceBoundaryHasNoMetadata() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "Earlier speech.", start: 0, end: 4, isStable: false)
-        transcript.update(text: "Later speech.", start: 12, end: 15, isStable: false)
-        transcript.update(text: "Later speech.", start: 12, end: 15, isStable: true)
-        #expect(transcript.text == "Earlier speech. Later speech.")
+    func cafBackupRemainsReadableWithoutNormalClose() throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let recording = directory.appending(path: "live.caf")
+        let interrupted = directory.appending(path: "interrupted.caf")
+        let writer = try Self.file(recording)
+        for _ in 0..<30 { try writer.write(from: Self.buffer()) }
+        // Snapshot the bytes before the writer's destructor finalizes the file.
+        try FileManager.default.copyItem(at: recording, to: interrupted)
+        withExtendedLifetime(writer) {
+            #expect(FileManager.default.fileExists(atPath: interrupted.path))
+        }
+        let recovered = try AVAudioFile(forReading: interrupted)
+        #expect(recovered.length == 30_000)
     }
 
     @Test
-    func partialRevisionsAndRepeatedFinalCallbacksDoNotDuplicateSpeech() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "I walked", start: 0, end: 2, isStable: false)
-        transcript.update(text: "I walked home.", start: 0, end: 3, isStable: true)
-        transcript.update(text: "I walked home.", start: 0, end: 3, isStable: true)
-        transcript.update(text: "I walked home.", start: 0, end: 3, isStable: false)
-        #expect(transcript.text == "I walked home.")
-        transcript.update(text: "Then I cooked.", start: 6, end: 8, isStable: true)
-        transcript.update(text: "I walked home. Then I cooked.", start: 0, end: 8, isStable: true)
-        #expect(transcript.text == "I walked home. Then I cooked.")
-    }
-
-    @Test
-    func revisedPartialReplacesEarlierTextForTheSameAudio() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "Poetry, he said this morning as he looked through the page that showed him pages of",
-                          start: 0.4, end: 8, isStable: true)
-        let revision = "Poetry, he said this morning as he looked through the page I showed him pages of my"
-        transcript.update(text: revision, start: 0.5, end: 9, isStable: false)
-        #expect(transcript.text == revision)
-        transcript.update(text: revision + " poetry.", start: 0.5, end: 10, isStable: true)
-        #expect(transcript.text == revision + " poetry.")
-    }
-
-    @Test
-    func cumulativePartialReplacesOverlappingUtterancesDespiteWordingChanges() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "I walked home.", start: 0, end: 3, isStable: true)
-        transcript.update(text: "Then I cooked.", start: 5, end: 8, isStable: true)
-        let revision = "I walked back home, then I cooked dinner."
-        transcript.update(text: revision, start: 0, end: 9, isStable: false)
-        #expect(transcript.text == revision)
-        transcript.update(text: "Later I read.", start: 12, end: 15, isStable: false)
-        #expect(transcript.text == revision + " Later I read.")
-    }
-
-    @Test
-    func identicalPartialInLaterAudioIsNotDiscarded() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "Thank you.", start: 0, end: 1, isStable: true)
-        transcript.update(text: "Thank you.", start: 5, end: 6, isStable: false)
-        #expect(transcript.text == "Thank you. Thank you.")
-        transcript.update(text: "Thank you.", start: 5, end: 6, isStable: true)
-        #expect(transcript.text == "Thank you. Thank you.")
-    }
-
-    @Test
-    func partialRevisionKeepsUnrelatedSpeechInAudioOrder() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "Before.", start: 0, end: 1, isStable: true)
-        transcript.update(text: "Draft.", start: 3, end: 5, isStable: true)
-        transcript.update(text: "After.", start: 8, end: 10, isStable: true)
-        transcript.update(text: "Revised.", start: 3, end: 5, isStable: false)
-        #expect(transcript.text == "Before. Revised. After.")
-    }
-
-    @Test
-    func repeatedWordsInSeparateUtterancesArePreserved() {
-        var transcript = SpeechTranscriptAccumulator()
-        transcript.update(text: "Thank you.", start: 0, end: 1, isStable: true)
-        transcript.update(text: "Thank you.", start: 5, end: 6, isStable: true)
-        #expect(transcript.text == "Thank you. Thank you.")
-        #expect(TranscriptWindowJoiner.join("I went to the park.", "the park was quiet.") == "I went to the park. was quiet.")
-    }
-
-    @Test
-    func liveRecognitionRotatesAndKeepsTheWholeTwoMinuteRecording() async throws {
-        let factory = TestSpeechFactory(texts: ["Opening thoughts at the park", "the park and the middle of my day", "my day ended well"])
-        let session = LiveSpeechSession(makeWindow: factory.make)
-        for _ in 0..<120 { session.append(try Self.buffer()) }
-        #expect(factory.windows.count == 3)
-        #expect(factory.windows.filter(\.ended).count == 2) // Transcribed before Stop.
-        let result = try await session.finish()
-        #expect(result == "Opening thoughts at the park and the middle of my day ended well")
-        #expect(factory.windows.allSatisfy { $0.frames <= 45_000 })
-        #expect(factory.windows.reduce(0) { $0 + $1.frames } == 122_000) // One-second overlaps.
-    }
-
-    @Test
-    func anErrorNeverReturnsTheLastPartialTranscriptAsSuccess() async throws {
-        let factory = TestSpeechFactory(texts: ["Only the last ten seconds"], behavior: .error)
-        let session = LiveSpeechSession(makeWindow: factory.make)
-        session.append(try Self.buffer())
-        await #expect(throws: NSError.self) { try await session.finish() }
-    }
-
-    @Test
-    func speechUpdatesCheckpointAllUtterancesBeforeStop() async throws {
+    func checkpointsAppendUnicodeAndReplaceRecoveryRevisions() throws {
         let url = FileManager.default.temporaryDirectory.appending(path: "checkpoint-\(UUID()).txt")
         defer { try? FileManager.default.removeItem(at: url) }
         let checkpoint = TranscriptCheckpoint(url: url)
-        let factory = TestSpeechFactory(texts: [""], behavior: .neverFinishes)
-        let session = LiveSpeechSession(onPartial: { try? checkpoint.save($0) }, makeWindow: factory.make)
-        session.append(try Self.buffer())
-        let window = try #require(factory.windows.first)
-        window.callback(SpeechRecognitionUpdate(text: "Earlier thoughts.", start: 0, end: 1, isStable: true, isFinal: false), nil)
-        session.append(try Self.buffer()) // Flush the recognition queue.
-        #expect(try String(contentsOf: url, encoding: .utf8) == "Earlier thoughts.")
-        window.callback(SpeechRecognitionUpdate(text: "Later thoughts.", start: 2, end: 3, isStable: true, isFinal: false), nil)
-        session.append(try Self.buffer())
-        #expect(try String(contentsOf: url, encoding: .utf8) == "Earlier thoughts. Later thoughts.")
-        session.cancel()
-        await #expect(throws: CancellationError.self) { try await session.finish() }
-        #expect(try String(contentsOf: url, encoding: .utf8) == "Earlier thoughts. Later thoughts.")
+        try checkpoint.save("First café.")
+        try checkpoint.save("First café. Later 👋.")
+        try checkpoint.save("First café. Later 👋.")
+        #expect(try String(contentsOf: url, encoding: .utf8) == "First café. Later 👋.")
+        try checkpoint.save("Recovered complete text.")
+        #expect(try String(contentsOf: url, encoding: .utf8) == "Recovered complete text.")
     }
 
     @Test
-    func pendingAudioIsBoundedWhenRecognitionFallsBehind() async throws {
-        let factory = TestSpeechFactory(texts: [""], behavior: .neverFinishes)
-        let session = LiveSpeechSession(makeWindow: factory.make)
-        for _ in 0..<65 { session.append(try Self.buffer()) }
-        await #expect(throws: TranscriptionError.self) { try await session.finish() }
-        #expect(factory.windows.first?.cancelled == true)
+    func stalledWriterHasABoundedQueueAndDrainsAcceptedAudio() async throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "audio-\(UUID()).caf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let queue = DispatchQueue(label: "Tangent.tests.stalled-writer")
+        queue.suspend()
+        let sink = RecordingAudioSink(file: try Self.file(url), maximumPendingBuffers: 2,
+                                      queue: queue, onAudioBuffer: { _ in })
+        let buffer = try Self.buffer()
+        sink.append(AVReadOnlyAudioPCMBuffer(copying: buffer))
+        sink.append(AVReadOnlyAudioPCMBuffer(copying: buffer))
+        for _ in 0..<1000 { sink.append(AVReadOnlyAudioPCMBuffer(copying: buffer)) }
+        queue.resume()
+        await #expect(throws: AudioRecordingError.self) { try await sink.finishRecording() }
+        #expect(try AVAudioFile(forReading: url).length == 2000)
     }
 
     @Test
-    func finalizationTimeoutAndCancellationDoNotHang() async throws {
-        let factory = TestSpeechFactory(texts: [""], behavior: .neverFinishes)
-        let session = LiveSpeechSession(finalizationTimeout: 0.01, makeWindow: factory.make)
-        session.append(try Self.buffer())
-        await #expect(throws: TranscriptionError.self) { try await session.finish() }
-        let cancelled = LiveSpeechSession(makeWindow: factory.make)
-        cancelled.cancel()
-        await #expect(throws: CancellationError.self) { try await cancelled.finish() }
+    func nativeConverterFlushPreservesAllSamples() throws {
+        let sourceFormat = try #require(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
+        let targetFormat = try #require(AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000, channels: 1, interleaved: false))
+        let converter = AnalyzerInputConverter(analyzerFormat: targetFormat)
+        var seconds = 0.0
+        for _ in 0..<100 {
+            let buffer = try #require(AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: 480))
+            buffer.frameLength = 480
+            buffer.floatChannelData?[0].initialize(repeating: 0.25, count: 480)
+            for input in try converter.convert(buffer, at: nil) { seconds += input.bufferDuration.seconds }
+        }
+        for input in try converter.flush() { seconds += input.bufferDuration.seconds }
+        #expect(abs(seconds - 1) < 0.002)
+    }
+
+    @Test @MainActor
+    func interruptedRecordingRecoveryIsDurableAndIdempotent() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let container = try TangentModelContainer.make(inMemory: true)
+        let store = SwiftDataNoteStore(modelContext: container.mainContext)
+        let profile = UserProfile(name: "Alex")
+        try await store.saveUserProfile(profile)
+        let pending = PendingRecording(id: UUID(), profileID: profile.id,
+            day: Date().addingTimeInterval(-86400), startedAt: Date(),
+            audioPath: directory.appending(path: "recording.caf").path)
+        try pending.save()
+        try Data("Saved audio".utf8).write(to: pending.audioURL)
+        let loaded = try #require(PendingRecording.loadAll(directory: directory).first)
+        try await loaded.recover(in: store)
+        try await loaded.recover(in: store)
+        let entry = try #require(await store.diaryEntry(id: pending.id))
+        #expect(entry.transcriptPath == pending.audioPath)
+        #expect(entry.day == pending.day)
+        #expect(entry.recordingStartedAt == pending.startedAt)
+        #expect(FileManager.default.fileExists(atPath: pending.audioURL.path))
+        #expect(!FileManager.default.fileExists(atPath: pending.journalURL.path))
     }
 
     @Test @MainActor
     func recordingFeedsSpeechBeforeStopAndSavesCompletedTranscript() async throws {
-        let factory = TestSpeechFactory(texts: ["Beginning middle and end."])
-        let transcriber = TestLiveTranscriber(session: LiveSpeechSession(makeWindow: factory.make))
+        let session = TestLiveSession(text: "Beginning middle and end.")
+        let transcriber = TestLiveTranscriber(session: session)
         let recorder = TestLiveRecorder()
         let container = try TangentModelContainer.make(inMemory: true)
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
@@ -186,7 +128,7 @@ struct LiveTranscriptionTests {
         await model.startRecording()
         let afterStart = Date()
         #expect(model.isRecording)
-        #expect(factory.windows.first?.frames == 1000)
+        #expect(session.frames == 1000)
         transcriber.onPartial?("Beginning middle")
         let checkpoint = TranscriptFiles.checkpointURL(for: try #require(recorder.url))
         #expect(try String(contentsOf: checkpoint, encoding: .utf8) == "Beginning middle")
@@ -210,8 +152,7 @@ struct LiveTranscriptionTests {
 
     @Test @MainActor
     func liveFailureKeepsFullAudioForFileRecovery() async throws {
-        let factory = TestSpeechFactory(texts: ["Incomplete tail"], behavior: .error)
-        let transcriber = TestLiveTranscriber(session: LiveSpeechSession(makeWindow: factory.make))
+        let transcriber = TestLiveTranscriber(session: TestLiveSession(text: "Incomplete tail", fails: true))
         let recorder = TestLiveRecorder()
         let container = try TangentModelContainer.make(inMemory: true)
         let store = SwiftDataNoteStore(modelContext: container.mainContext)
@@ -226,6 +167,54 @@ struct LiveTranscriptionTests {
         #expect(!entry.transcriptPath.hasSuffix(".txt"))
     }
 
+    @Test @MainActor
+    func unavailableSpeechAssetsStillAllowRecordingAndFileRecovery() async throws {
+        let recorder = TestLiveRecorder()
+        let transcriber = TestLiveTranscriber(session: TestLiveSession(text: "Unused"))
+        transcriber.failsStart = true
+        let container = try TangentModelContainer.make(inMemory: true)
+        let store = SwiftDataNoteStore(modelContext: container.mainContext)
+        try await store.saveUserProfile(UserProfile(name: "Alex"))
+        let model = RecordHomeViewModel(audioRecorder: recorder, transcriber: transcriber, noteStore: store)
+        await model.startRecording()
+        #expect(model.isRecording)
+        let id = try #require(await model.stopRecording())
+        let entry = try #require(await store.diaryEntry(id: id))
+        let audio = TranscriptFiles.url(for: entry.transcriptPath)
+        defer { try? FileManager.default.removeItem(at: audio) }
+        #expect(audio == recorder.url)
+        #expect(FileManager.default.fileExists(atPath: audio.path))
+        #expect(!FileManager.default.fileExists(atPath: audio.appendingPathExtension("json").path))
+    }
+
+    @Test @MainActor
+    func writerFailureStillSavesTheAudioPrefixAsARecoverableEntry() async throws {
+        let recorder = TestLiveRecorder()
+        recorder.failsStop = true
+        let transcriber = TestLiveTranscriber(session: TestLiveSession(text: "Incomplete"))
+        let container = try TangentModelContainer.make(inMemory: true)
+        let store = SwiftDataNoteStore(modelContext: container.mainContext)
+        try await store.saveUserProfile(UserProfile(name: "Alex"))
+        let model = RecordHomeViewModel(audioRecorder: recorder, transcriber: transcriber, noteStore: store)
+        await model.startRecording()
+        #expect(await model.stopRecording() == nil)
+        guard case .failed = model.phase else { Issue.record("Expected a visible recording error"); return }
+        let entry = try #require(await store.diaryEntries(profileID: nil).first)
+        let audio = TranscriptFiles.url(for: entry.transcriptPath)
+        defer { try? FileManager.default.removeItem(at: audio) }
+        #expect(audio == recorder.url)
+        #expect(try String(contentsOf: audio, encoding: .utf8) == "Full audio backup")
+        #expect(!entry.transcriptPath.hasSuffix(".txt"))
+    }
+
+    private static func file(_ url: URL) throws -> AVAudioFile {
+        try AVAudioFile(forWriting: url, settings: [
+            AVFormatIDKey: Int(kAudioFormatLinearPCM), AVSampleRateKey: 1000,
+            AVNumberOfChannelsKey: 1, AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false
+        ])
+    }
+
     fileprivate static func buffer() throws -> AVAudioPCMBuffer {
         let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 1000, channels: 1))
         let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1000))
@@ -235,58 +224,25 @@ struct LiveTranscriptionTests {
     }
 }
 
-private final class TestSpeechFactory: @unchecked Sendable {
-    enum Behavior { case final, error, neverFinishes }
-    private let lock = NSLock()
-    private var storage: [TestSpeechWindow] = []
-    private let texts: [String]
-    private let behavior: Behavior
-    var windows: [TestSpeechWindow] { lock.withLock { storage } }
-
-    init(texts: [String], behavior: Behavior = .final) {
-        self.texts = texts
-        self.behavior = behavior
-    }
-
-    func make(callback: @escaping @Sendable (SpeechRecognitionUpdate?, Error?) -> Void) -> any SpeechRecognitionWindow {
-        lock.withLock {
-            let text = texts[min(storage.count, texts.count - 1)]
-            let window = TestSpeechWindow(text: text, behavior: behavior, callback: callback)
-            storage.append(window)
-            return window
-        }
-    }
-}
-
-private final class TestSpeechWindow: SpeechRecognitionWindow, @unchecked Sendable {
+private final class TestLiveSession: LiveTranscriptionSession, @unchecked Sendable {
     private let lock = NSLock()
     private var frameCount = 0
-    private var didEnd = false
-    private var didCancel = false
     var frames: Int { lock.withLock { frameCount } }
-    var ended: Bool { lock.withLock { didEnd } }
-    var cancelled: Bool { lock.withLock { didCancel } }
     let text: String
-    let behavior: TestSpeechFactory.Behavior
-    let callback: @Sendable (SpeechRecognitionUpdate?, Error?) -> Void
-
-    init(text: String, behavior: TestSpeechFactory.Behavior, callback: @escaping @Sendable (SpeechRecognitionUpdate?, Error?) -> Void) {
-        self.text = text
-        self.behavior = behavior
-        self.callback = callback
-    }
+    let fails: Bool
+    init(text: String, fails: Bool = false) { self.text = text; self.fails = fails }
     func append(_ buffer: AVAudioPCMBuffer) { lock.withLock { frameCount += Int(buffer.frameLength) } }
-    func endAudio() {
-        lock.withLock { didEnd = true }
-        guard behavior != .neverFinishes else { return }
-        callback(SpeechRecognitionUpdate(text: text, start: 0, end: 10, isStable: true, isFinal: behavior == .final), nil)
-        if behavior == .error { callback(nil, NSError(domain: "TestSpeechFailure", code: 1)) }
+    func finish() async throws -> String {
+        if fails { throw TranscriptionError.recognitionInterrupted }
+        return text
     }
-    func cancel() { lock.withLock { didCancel = true } }
+    func cancel() {}
 }
 
 private final class TestLiveRecorder: LiveAudioRecorder {
+    var onRecordingFailure: (@Sendable (Error) -> Void)?
     var url: URL?
+    var failsStop = false
     func startRecording(to destination: URL) async throws {
         try await startRecording(to: destination, onAudioBuffer: { _ in })
     }
@@ -296,17 +252,22 @@ private final class TestLiveRecorder: LiveAudioRecorder {
         try Data("Full audio backup".utf8).write(to: destination)
         onAudioBuffer(try LiveTranscriptionTests.buffer())
     }
-    func stopRecording() async throws -> URL { try #require(url) }
+    func stopRecording() async throws -> URL {
+        if failsStop { throw AudioRecordingError.writerFellBehind }
+        return try #require(url)
+    }
     func cancelRecording() async {}
 }
 
 private final class TestLiveTranscriber: LiveTranscriber {
     let session: any LiveTranscriptionSession
     var fileRequests = 0
+    var failsStart = false
     var onPartial: (@Sendable (String) -> Void)?
     init(session: any LiveTranscriptionSession) { self.session = session }
     func startLiveTranscription(onPartial: @escaping @Sendable (String) -> Void) async throws -> any LiveTranscriptionSession {
         self.onPartial = onPartial
+        if failsStart { throw TranscriptionError.recognizerUnavailable }
         return session
     }
     func transcribe(audioAt url: URL) async throws -> String { fileRequests += 1; return "Recovered full audio" }

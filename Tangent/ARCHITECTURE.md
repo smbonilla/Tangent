@@ -30,10 +30,53 @@ simulator, wrapped by `OptionalAIService`. The wrapper gates warmup, generation,
 
 `AppPreferences` persists AI and onboarding choices in UserDefaults. New installs start with AI off; existing installs retain their enabled workflow and skip onboarding. Completing onboarding saves the profile before marking setup complete. Downloads remain explicit in Settings. AI-off diary cards use transcript previews; daily details hide summaries, and Insights disables generation.
 
-Recording saves an entry, then `DailyTangentDetailsViewModel` transcribes the
-recording and, when AI is enabled, requests one short summary. It stores the sentence and its filled
-prompt, and reuses the saved summary when the entry is reopened. There is no
-background second generation task. Transcripts remain available in daily details.
+## Recording and transcription (iOS 27)
+
+`AVAudioRecorderService` owns one microphone engine. Its iOS 27 throwing tap supplies immutable Sendable buffers to a bounded
+writer queue (64 buffers; each at most 16,384 frames and 8 channels). A serial
+worker writes 16-bit PCM CAF before feeding speech. Queued buffers are released
+after processing, so retained raw audio does not grow with recording length.
+A full queue is a recording failure, never a silent dropped frame. Stop removes
+the tap, drains accepted buffers, and closes the file off the main thread.
+The audio background mode supports screen locking; interruptions, route-driven
+engine changes, and media-service resets stop capture and preserve saved audio.
+
+`OnDeviceTranscriber` uses `SpeechTranscriber` and one `SpeechAnalyzer` per
+recording. There is no silence timeout, request rotation, overlap, or word-based
+deduplication. Only finalized segments are requested, retaining Apple's spacing
+and punctuation. `AnalyzerInputConverter` handles sample conversion and flushes
+held-over samples at Stop. Live input retains at most 32 analyzer inputs; overflow
+invalidates the live transcript and uses the complete disk recording for recovery.
+`AssetInputSequenceProvider` supplies file audio on demand using the same engine.
+Locale support and model installation use `AssetInventory`. Missing models do not
+block recording: file transcription installs them later. No legacy Speech
+Recognition authorization or server transcription is used.
+
+`TranscriptCheckpoint` appends finalized text and synchronizes it to disk, with
+atomic replacement for revisions. `PendingRecording` writes a JSON recovery
+intent before capture, including the entry id, profile, day, and audio reference.
+Launch snapshots pending intents and idempotently restores interrupted recordings
+as audio-backed diary entries. Interrupted replacements recover as new entries so
+the previous diary is preserved. The journal is removed only after the entry saves;
+audio is removed only after a complete transcript and entry are both durable.
+A process termination can lose samples still in the bounded in-memory queues;
+this is not a guarantee against power loss or storage failure.
+
+`DailyTangentDetailsViewModel` retries saved audio when required, then optionally
+requests one short AI summary. It stores the sentence and filled prompt and reuses
+the saved summary on reopening. Transcripts remain available with AI disabled.
+
+Apple references:
+- [SpeechAnalyzer lifecycle and input](https://developer.apple.com/documentation/speech/speechanalyzer)
+- [AnalyzerInputConverter](https://developer.apple.com/documentation/speech/analyzerinputconverter)
+- [CAF streaming format](https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html)
+- [Background audio session configuration](https://developer.apple.com/documentation/avfaudio/avaudiosession/category-swift.struct/record)
+
+Device validation still requires a supported physical iPhone and installed speech
+assets: record speech before and after several minutes of silence; repeat a phrase;
+lock/unlock; change audio routes; interrupt with a call; force-quit and relaunch;
+and check the full transcript after a long recording. Simulator tests exercise
+conversion, persistence, queue overflow, and recovery without speech model downloads.
 
 `InsightsViewModel` filters entries by the selected date range and converts
 nonempty short summaries to `DiarySummary` values. The language-model service

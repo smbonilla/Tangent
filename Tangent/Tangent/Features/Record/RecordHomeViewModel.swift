@@ -26,8 +26,9 @@ final class RecordHomeViewModel: ObservableObject {
     private var elapsedTask: Task<Void, Never>?
     private var questionTask: Task<Void, Never>?
     private var suggestionOfferTask: Task<Void, Never>?
-    private var isFinishing = false
-    private var isStarting = false
+    @Published private var isFinishing = false
+    @Published private var isStarting = false
+    private var pendingRecording: PendingRecording?
     private var transcriptCheckpoint: TranscriptCheckpoint?
     private var liveTranscription: (any LiveTranscriptionSession)?
     private let initialQuestionDelay: Duration
@@ -75,12 +76,28 @@ final class RecordHomeViewModel: ObservableObject {
 
         do {
             let destination = Self.newRecordingDestination()
+            guard let profile = try await noteStore.userProfiles().first else {
+                throw RecordPersistenceError.missingProfile
+            }
+            let startedAt = Date()
+            let pending = PendingRecording(id: UUID(), profileID: profile.id,
+                day: entryDay ?? startedAt, startedAt: startedAt,
+                audioPath: TranscriptFiles.reference(for: destination))
+            try pending.save()
+            pendingRecording = pending
             let checkpoint = TranscriptCheckpoint(url: TranscriptFiles.checkpointURL(for: destination))
             transcriptCheckpoint = checkpoint
             if let recorder = audioRecorder as? any LiveAudioRecorder,
                let transcriber = transcriber as? any LiveTranscriber {
-                // Obtain speech permission before capturing the first sample.
-                // If unavailable, still keep the full recording for recovery.
+                recorder.onRecordingFailure = { [weak self] error in
+                    Task { @MainActor [weak self] in
+                        guard let self, self.isRecording else { return }
+                        _ = await self.stopRecording()
+                        self.phase = .failed(message: error.localizedDescription)
+                    }
+                }
+                // If the speech assets are unavailable, capture immediately;
+                // the details screen can install them and transcribe the file.
                 let session = try? await transcriber.startLiveTranscription { text in
                     // A final write is retried at Stop; keep the full audio if it fails.
                     try? checkpoint.save(text)
@@ -94,7 +111,7 @@ final class RecordHomeViewModel: ObservableObject {
                 try Task.checkCancellation()
                 try await audioRecorder.startRecording(to: destination)
             }
-            recordingStartedAt = Date()
+            recordingStartedAt = startedAt
             recordingDay = entryDay ?? recordingStartedAt
             recordingReplacementID = replacingEntryID
             elapsed = 0
@@ -110,6 +127,10 @@ final class RecordHomeViewModel: ObservableObject {
         } catch {
             liveTranscription?.cancel()
             liveTranscription = nil
+            if let pending = pendingRecording,
+               !FileManager.default.fileExists(atPath: pending.audioURL.path) {
+                try? pending.removeJournal()
+            }
             phase = .failed(message: error.localizedDescription)
         }
     }
@@ -145,7 +166,7 @@ final class RecordHomeViewModel: ObservableObject {
                 } catch {
                     session.cancel()
                     // Save the audio path, so the details screen can retry the
-                    // whole recording in bounded windows. Never save a tail.
+                    // whole recording with SpeechAnalyzer. Never save a tail.
                 }
             }
             let id = try await saveEntry(
@@ -153,8 +174,12 @@ final class RecordHomeViewModel: ObservableObject {
                 transcriptPath: transcriptPath,
                 questions: promptedQuestions,
                 recordingStartedAt: recordingStartedAt,
-                replacingEntryID: recordingReplacementID
+                replacingEntryID: recordingReplacementID,
+                newEntryID: pendingRecording?.id
             )
+            // The entry is durable before its recovery intent is removed.
+            try pendingRecording?.removeJournal()
+            pendingRecording = nil
             // Keep the audio until the complete transcript and entry are both
             // durable. Failed live recognition leaves it available for recovery.
             if TranscriptFiles.url(for: transcriptPath) != recordingURL {
@@ -164,16 +189,27 @@ final class RecordHomeViewModel: ObservableObject {
         } catch {
             liveTranscription?.cancel()
             liveTranscription = nil
+            // Disk/queue errors must still make the saved prefix discoverable.
+            // Preserve the journal too if the database itself cannot save.
+            if let pending = pendingRecording { try? await pending.recover(in: noteStore) }
             phase = .failed(message: error.localizedDescription)
             return nil
         }
     }
 
-    deinit {
+    isolated deinit {
         liveTranscription?.cancel()
         elapsedTask?.cancel()
         questionTask?.cancel()
         suggestionOfferTask?.cancel()
+        if phase == .recording, let pending = pendingRecording {
+            let recorder = audioRecorder
+            let store = noteStore
+            Task { @MainActor in
+                _ = try? await recorder.stopRecording()
+                try? await pending.recover(in: store)
+            }
+        }
     }
 
     func acceptQuestionSuggestions() async {
@@ -190,6 +226,7 @@ final class RecordHomeViewModel: ObservableObject {
         questions: [DiaryQuestion],
         recordingStartedAt: Date? = nil,
         replacingEntryID: UUID? = nil,
+        newEntryID: UUID? = nil,
         calendar: Calendar = .autoupdatingCurrent
     ) async throws -> UUID {
         guard let user = try await noteStore.userProfiles().first else {
@@ -205,7 +242,7 @@ final class RecordHomeViewModel: ObservableObject {
         }
 
         let entry = DiaryEntry(
-            id: replacingEntryID ?? UUID(),
+            id: replacingEntryID ?? newEntryID ?? UUID(),
             profileID: user.id,
             day: day,
             recordingStartedAt: recordingStartedAt,
@@ -311,7 +348,7 @@ final class RecordHomeViewModel: ObservableObject {
         )
         return documents
             .appending(path: "Recordings", directoryHint: .isDirectory)
-            .appending(path: "tangent-\(timestamp)-\(UUID().uuidString).m4a")
+            .appending(path: "tangent-\(timestamp)-\(UUID().uuidString).caf")
     }
 }
 

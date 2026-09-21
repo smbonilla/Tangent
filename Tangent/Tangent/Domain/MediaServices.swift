@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol AudioRecorder: AnyObject {
     func startRecording(to destination: URL) async throws
     func stopRecording() async throws -> URL
