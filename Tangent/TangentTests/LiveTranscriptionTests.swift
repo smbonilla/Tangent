@@ -20,9 +20,30 @@ struct LiveTranscriptionTests {
         let url = FileManager.default.temporaryDirectory.appending(path: "audio-\(UUID()).caf")
         defer { try? FileManager.default.removeItem(at: url) }
         let sink = RecordingAudioSink(file: try Self.file(url), onAudioBuffer: { _ in })
-        for _ in 0..<30 { sink.append(AVReadOnlyAudioPCMBuffer(copying: try Self.buffer())) }
+        for _ in 0..<30 { sink.append(try Self.buffer()) }
         #expect(try await sink.finishRecording() == url)
         #expect(try AVAudioFile(forReading: url).length == 30_000)
+    }
+
+    @Test
+    func audioBackupOwnsItsCopyBeforeTheMicrophoneReusesTheBuffer() async throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "audio-\(UUID()).caf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let queue = DispatchQueue(label: "Tangent.tests.buffer-ownership")
+        let sink = RecordingAudioSink(file: try Self.file(url), queue: queue, onAudioBuffer: { _ in })
+        let buffer = try Self.buffer()
+        queue.suspend()
+        buffer.floatChannelData?[0].update(repeating: 0.25, count: 1000)
+        sink.append(buffer)
+        buffer.floatChannelData?[0].update(repeating: -0.5, count: 1000)
+        queue.resume()
+        _ = try await sink.finishRecording()
+        let file = try AVAudioFile(forReading: url)
+        let saved = try #require(AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 1000))
+        try file.read(into: saved)
+        #expect(saved.frameLength == 1000)
+        let samples = try #require(saved.floatChannelData?[0])
+        #expect((0..<1000).allSatisfy { abs(samples[$0] - 0.25) < 0.0001 })
     }
 
     @Test
@@ -65,28 +86,33 @@ struct LiveTranscriptionTests {
         let sink = RecordingAudioSink(file: try Self.file(url), maximumPendingBuffers: 2,
                                       queue: queue, onAudioBuffer: { _ in })
         let buffer = try Self.buffer()
-        sink.append(AVReadOnlyAudioPCMBuffer(copying: buffer))
-        sink.append(AVReadOnlyAudioPCMBuffer(copying: buffer))
-        for _ in 0..<1000 { sink.append(AVReadOnlyAudioPCMBuffer(copying: buffer)) }
+        sink.append(buffer)
+        sink.append(buffer)
+        for _ in 0..<1000 { sink.append(buffer) }
         queue.resume()
         await #expect(throws: AudioRecordingError.self) { try await sink.finishRecording() }
         #expect(try AVAudioFile(forReading: url).length == 2000)
     }
 
     @Test
-    func nativeConverterFlushPreservesAllSamples() throws {
+    func converterFlushPreservesAllSamples() throws {
         let sourceFormat = try #require(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
         let targetFormat = try #require(AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000, channels: 1, interleaved: false))
-        let converter = AnalyzerInputConverter(analyzerFormat: targetFormat)
+        let converter = SpeechAudioConverter(analyzerFormat: targetFormat)
         var seconds = 0.0
         for _ in 0..<100 {
             let buffer = try #require(AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: 480))
             buffer.frameLength = 480
             buffer.floatChannelData?[0].initialize(repeating: 0.25, count: 480)
-            for input in try converter.convert(buffer, at: nil) { seconds += input.bufferDuration.seconds }
+            for input in try converter.convert(buffer) {
+                seconds += Double(input.buffer.frameLength) / input.buffer.format.sampleRate
+            }
         }
-        for input in try converter.flush() { seconds += input.bufferDuration.seconds }
+        for input in try converter.flush() {
+            seconds += Double(input.buffer.frameLength) / input.buffer.format.sampleRate
+        }
         #expect(abs(seconds - 1) < 0.002)
+        #expect(try converter.flush().isEmpty)
     }
 
     @Test @MainActor

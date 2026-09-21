@@ -69,14 +69,16 @@ final class AVAudioRecorderService: LiveAudioRecorder {
             ], commonFormat: format.commonFormat, interleaved: format.isInterleaved)
             let onFailure = onRecordingFailure ?? { _ in }
             let sink = RecordingAudioSink(file: file, onAudioBuffer: onAudioBuffer, onFailure: onFailure)
-            try input.installAudioTap(onBus: 0, bufferSize: AVAudioFrameCount(format.sampleRate * 0.1), format: format) { buffer, _ in sink.append(buffer) }
+            input.installTap(onBus: 0, bufferSize: AVAudioFrameCount(format.sampleRate * 0.1), format: format) { buffer, _ in sink.append(buffer) }
             engine.prepare()
             try engine.start()
             self.engine = engine
             self.sink = sink
             let center = NotificationCenter.default
             observers = [
-                center.addObserver(forName: AVAudioSession.didBecomeInactiveNotification, object: session, queue: nil) { _ in
+                center.addObserver(forName: AVAudioSession.interruptionNotification, object: session, queue: nil) { notification in
+                    guard let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                          type == AVAudioSession.InterruptionType.began.rawValue else { return }
                     onFailure(AudioRecordingError.interrupted)
                 },
                 center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { _ in
@@ -148,11 +150,11 @@ final class RecordingAudioSink: @unchecked Sendable {
         self.onFailure = onFailure
     }
 
-    func append(_ buffer: AVReadOnlyAudioPCMBuffer) {
+    func append(_ buffer: AVAudioPCMBuffer) {
         lock.lock()
         guard accepting else { lock.unlock(); return }
-        // iOS 27 supplies immutable Sendable buffers. Retain at most the fixed
-        // slot count, and do all mutable copying and I/O on the writer queue.
+        // The tap can reuse its buffer after this callback. Admit a bounded
+        // number of buffers, then copy before handing ownership to the writer.
         guard buffer.frameCapacity <= 16_384, buffer.format.channelCount <= 8,
               slots.wait(timeout: .now()) == .success else {
             let error = AudioRecordingError.writerFellBehind
@@ -162,13 +164,28 @@ final class RecordingAudioSink: @unchecked Sendable {
             onFailure(error)
             return
         }
+        guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else {
+            slots.signal()
+            accepting = false
+            failure = AudioRecordingError.failedToStart
+            lock.unlock()
+            onFailure(AudioRecordingError.failedToStart)
+            return
+        }
+        copy.frameLength = buffer.frameLength
+        let source = UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
+        let destination = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
+        for (sourceBuffer, destinationBuffer) in zip(source, destination) {
+            if let sourceData = sourceBuffer.mData, let destinationData = destinationBuffer.mData {
+                memcpy(destinationData, sourceData, Int(sourceBuffer.mDataByteSize))
+            }
+        }
         // Admission and enqueue are atomic with respect to Stop, so its drain
         // cannot overtake a buffer we have already accepted.
         queue.async {
             defer { self.slots.signal() }
             guard let file = self.file, !self.writeFailed else { return }
             do {
-                let copy = AVAudioPCMBuffer(copying: buffer)
                 // Drain already accepted buffers even after an overflow. Every
                 // successfully saved frame remains available for file recovery.
                 try file.write(from: copy)

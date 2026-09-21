@@ -23,7 +23,7 @@ enum TranscriptionError: LocalizedError {
     }
 }
 
-/// iOS 27's long-form, on-device speech engine. Silence is part of the input,
+/// iOS 26's long-form, on-device speech engine. Silence is part of the input,
 /// never a reason to end the session or discard earlier finalized segments.
 final class OnDeviceTranscriber: LiveTranscriber {
     func startLiveTranscription(onPartial: @escaping @Sendable (String) -> Void) async throws -> any LiveTranscriptionSession {
@@ -74,9 +74,8 @@ final class OnDeviceTranscriber: LiveTranscriber {
             do {
                 // Apple's provider reads and converts on demand rather than
                 // eagerly enqueuing an entire long recording in memory.
-                let source = try await AssetInputSequenceProvider.provider(
-                    from: AVURLAsset(url: url), compatibleWith: [transcriber])
-                if let end = try await analyzer.analyzeSequence(source.analyzerInputs) {
+                let source = try AVAudioFile(forReading: url)
+                if let end = try await analyzer.analyzeSequence(from: source) {
                     try await analyzer.finalizeAndFinish(through: end)
                 } else {
                     await analyzer.cancelAndFinishNow()

@@ -10,7 +10,7 @@ final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
     private let input: AsyncThrowingStream<AnalyzerInput, Error>.Continuation
     private let resultTask: Task<String, Error>
     private let lock = NSLock()
-    private let converter: AnalyzerInputConverter
+    private let converter: SpeechAudioConverter
     private var failure: Error?
     private var ended = false
 
@@ -18,7 +18,7 @@ final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
                  format: AVAudioFormat, resultTask: Task<String, Error>) {
         self.analyzer = analyzer
         self.input = input
-        self.converter = AnalyzerInputConverter(analyzerFormat: format)
+        self.converter = SpeechAudioConverter(analyzerFormat: format)
         self.resultTask = resultTask
     }
 
@@ -65,7 +65,7 @@ final class LiveSpeechSession: LiveTranscriptionSession, @unchecked Sendable {
                 // Also bound bytes/duration per queued element, independently
                 // of the hardware's chosen tap-buffer size.
                 guard buffer.frameLength <= 16_384 else { throw TranscriptionError.recognitionFellBehind }
-                for converted in try converter.convert(buffer, at: nil) {
+                for converted in try converter.convert(buffer) {
                     try enqueue(converted)
                 }
             } catch {

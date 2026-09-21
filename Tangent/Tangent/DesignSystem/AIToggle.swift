@@ -13,8 +13,8 @@ struct AIToggle: View {
 struct AIRequirementsNote: View {
     var body: some View {
         Text(UIDevice.current.userInterfaceIdiom == .pad
-             ? "Requires an iPad with A14, M1 or newer and iPadOS 27+. Larger models need more memory."
-             : "Requires iPhone 12 or later, or iPhone SE (3rd generation), with iOS 27+. Larger models need more memory.")
+             ? "Requires an iPad with A14, M1 or newer and iPadOS 26+. Larger models need more memory."
+             : "Requires iPhone 12 or later, or iPhone SE (3rd generation), with iOS 26+. Larger models need more memory.")
             .font(.footnote)
             .foregroundStyle(Color(uiColor: .secondaryLabel))
     }

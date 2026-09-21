@@ -30,9 +30,9 @@ simulator, wrapped by `OptionalAIService`. The wrapper gates warmup, generation,
 
 `AppPreferences` persists AI and onboarding choices in UserDefaults. New installs start with AI off; existing installs retain their enabled workflow and skip onboarding. Completing onboarding saves the profile before marking setup complete. Downloads remain explicit in Settings. AI-off diary cards use transcript previews; daily details hide summaries, and Insights disables generation.
 
-## Recording and transcription (iOS 27)
+## Recording and transcription (iOS 26+)
 
-`AVAudioRecorderService` owns one microphone engine. Its iOS 27 throwing tap supplies immutable Sendable buffers to a bounded
+`AVAudioRecorderService` owns one microphone engine. Its microphone tap copies each accepted buffer before the tap can reuse it, then supplies a bounded
 writer queue (64 buffers; each at most 16,384 frames and 8 channels). A serial
 worker writes 16-bit PCM CAF before feeding speech. Queued buffers are released
 after processing, so retained raw audio does not grow with recording length.
@@ -44,10 +44,10 @@ engine changes, and media-service resets stop capture and preserve saved audio.
 `OnDeviceTranscriber` uses `SpeechTranscriber` and one `SpeechAnalyzer` per
 recording. There is no silence timeout, request rotation, overlap, or word-based
 deduplication. Only finalized segments are requested, retaining Apple's spacing
-and punctuation. `AnalyzerInputConverter` handles sample conversion and flushes
+and punctuation. `SpeechAudioConverter` uses `AVAudioConverter` for sample conversion and flushes
 held-over samples at Stop. Live input retains at most 32 analyzer inputs; overflow
 invalidates the live transcript and uses the complete disk recording for recovery.
-`AssetInputSequenceProvider` supplies file audio on demand using the same engine.
+`SpeechAnalyzer.analyzeSequence(from:)` reads saved audio files on demand using the same engine.
 Locale support and model installation use `AssetInventory`. Missing models do not
 block recording: file transcription installs them later. No legacy Speech
 Recognition authorization or server transcription is used.

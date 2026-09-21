@@ -64,7 +64,7 @@ python3 scripts/environment.py auto --resolve --open
 
 The helper checks the toolchain and uses the pinned dependencies in the shared project. Select the **Tangent**
 scheme, configure your signing team for a physical device, and run.
-The app requires iOS 27 or later. AI needs a supported physical device;
+The app requires iOS 26 or later. AI needs a supported physical device;
 the simulator can run the interface but not model inference.
 
 See [architecture](Tangent/ARCHITECTURE.md) for the code layout.
