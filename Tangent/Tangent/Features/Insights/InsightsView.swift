@@ -85,27 +85,25 @@ struct InsightsView: View {
             Text("Generate insight")
                 .font(.system(.title2, weight: .semibold))
 
-            DatePicker(
-                "From",
+            InsightDateField(
+                title: "From",
                 selection: Binding(
                     get: { model.fromDate },
                     set: model.setFromDate
                 ),
-                in: model.earliestFromDate...model.toDate,
-                displayedComponents: .date
+                range: model.earliestFromDate...model.toDate,
+                format: insightDateFormat
             )
-            .environment(\.locale, insightDateLocale)
 
-            DatePicker(
-                "To",
+            InsightDateField(
+                title: "To",
                 selection: Binding(
                     get: { model.toDate },
                     set: model.setToDate
                 ),
-                in: ...model.latestToDate,
-                displayedComponents: .date
+                range: Date.distantPast...model.latestToDate,
+                format: insightDateFormat
             )
-            .environment(\.locale, insightDateLocale)
 
             Button {
                 Task {
@@ -208,6 +206,45 @@ struct InsightsView: View {
         let from = insight.generatedFrom.formatted(insightDateFormat)
         let to = insight.generatedTo.formatted(insightDateFormat)
         return from == to ? from : "\(from) – \(to)"
+    }
+}
+
+/// Compact DatePicker labels have system-controlled formatting. Own the visible
+/// label so both fields agree, while keeping native calendar selection.
+private struct InsightDateField: View {
+    let title: String
+    @Binding var selection: Date
+    let range: ClosedRange<Date>
+    let format: Date.FormatStyle
+    @State private var showsCalendar = false
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Button {
+                showsCalendar = true
+            } label: {
+                Text(selection.formatted(format))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.tangentInk.opacity(0.06), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection.formatted(format))
+            .popover(isPresented: $showsCalendar) {
+                DatePicker(title, selection: $selection, in: range, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .environment(\.locale, format.locale)
+                    .padding(12)
+                    .frame(idealWidth: 340)
+                    .presentationCompactAdaptation(.popover)
+                    .onChange(of: selection) { _, _ in
+                        showsCalendar = false
+                    }
+            }
+        }
     }
 }
 
