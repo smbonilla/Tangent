@@ -152,7 +152,7 @@ final class TangentUITests: XCTestCase {
         share.lifetime = .keepAlways
         add(share)
         app.cells["Copy"].tap()
-        options.tap()
+        if !app.buttons["redo-tangent"].isHittable { options.tap() }
         app.buttons["redo-tangent"].tap()
         XCTAssertTrue(app.alerts["Re-do this Tangent?"].waitForExistence(timeout: 3))
         app.alerts.buttons["Cancel"].tap()

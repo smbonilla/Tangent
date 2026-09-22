@@ -11,6 +11,7 @@ struct DailyTangentDetailsView: View {
     @State private var showsSummaryEditor = false
     @State private var showsRedoConfirmation = false
     @State private var showsDeleteConfirmation = false
+    @State private var showsOptions = false
     @State private var draftSummary = ""
     @State private var draftTranscript = ""
     private let calendar: Calendar
@@ -111,32 +112,45 @@ struct DailyTangentDetailsView: View {
         .toolbar {
             if model.entry != nil {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Section("Options") {
+                    Button {
+                        dismissKeyboard()
+                        showsOptions = true
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .foregroundStyle(Color.gray)
+                    }
+                    .tint(.gray)
+                    .accessibilityLabel("Options")
+                    .accessibilityIdentifier("tangent-options")
+                    .disabled(model.isDeleting)
+                    .popover(isPresented: $showsOptions) {
+                        VStack(spacing: 0) {
                             ShareLink(item: shareText, subject: Text("Tangent")) {
-                                Label("Share", systemImage: "square.and.arrow.up")
+                                optionLabel("Share", systemImage: "square.and.arrow.up", color: .gray)
                             }
                             .disabled(model.isTranscribing || model.isGenerating)
                             .accessibilityIdentifier("share-tangent")
-                            Button(action: confirmOrRedo) {
-                                Label("Re-do", systemImage: "arrow.counterclockwise")
+                            Button {
+                                showsOptions = false
+                                confirmOrRedo()
+                            } label: {
+                                optionLabel("Re-do", systemImage: "arrow.counterclockwise", color: .gray)
                             }
                             .disabled(redo == nil || model.isTranscribing)
                             .accessibilityIdentifier("redo-tangent")
                             Button(role: .destructive) {
-                                dismissKeyboard()
+                                showsOptions = false
                                 showsDeleteConfirmation = true
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                optionLabel("Delete", systemImage: "trash", color: .red)
                             }
                             .accessibilityIdentifier("delete-tangent")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis")
+                        .buttonStyle(.plain)
+                        .padding(8)
+                        .frame(width: 240)
+                        .presentationCompactAdaptation(.popover)
                     }
-                    .accessibilityLabel("Options")
-                    .accessibilityIdentifier("tangent-options")
-                    .disabled(model.isDeleting)
                 }
             }
             if isEditing {
@@ -190,6 +204,20 @@ struct DailyTangentDetailsView: View {
                 Task { await model.saveEdits(summary: editableSummary, transcript: draftTranscript) }
             }
         }
+    }
+
+    private func optionLabel(_ title: String, systemImage: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .frame(width: 24)
+            Text(title)
+            Spacer(minLength: 0)
+        }
+        .font(.body)
+        .foregroundStyle(color)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .contentShape(Rectangle())
     }
 
     private var transcriptText: String {
