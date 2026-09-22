@@ -3,12 +3,14 @@ import SwiftUI
 struct DailyTangentDetailsView: View {
     private enum Field: Hashable { case summary, transcript }
 
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var preferences: AppPreferences
     @StateObject private var model: DailyTangentDetailsViewModel
     @FocusState private var focusedField: Field?
     @State private var isEditing = false
     @State private var showsSummaryEditor = false
     @State private var showsRedoConfirmation = false
+    @State private var showsDeleteConfirmation = false
     @State private var draftSummary = ""
     @State private var draftTranscript = ""
     private let calendar: Calendar
@@ -73,19 +75,6 @@ struct DailyTangentDetailsView: View {
                         }
 
                             transcriptSection
-
-                            if redo != nil {
-                                TangentFillButton(
-                                    title: calendar.isDateInToday(entry.day)
-                                        ? "Redo today’s Tangent"
-                                        : "Redo Tangent",
-                                    hint: shouldConfirmRedo
-                                        ? "Asks before overwriting this recording"
-                                        : "Opens a new recording for this day",
-                                    identifier: "redo-tangent",
-                                    action: confirmOrRedo
-                                )
-                            }
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 12)
@@ -120,6 +109,36 @@ struct DailyTangentDetailsView: View {
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
+            if model.entry != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Section("Options") {
+                            ShareLink(item: shareText, subject: Text("Tangent")) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                            .disabled(model.isTranscribing || model.isGenerating)
+                            .accessibilityIdentifier("share-tangent")
+                            Button(action: confirmOrRedo) {
+                                Label("Re-do", systemImage: "arrow.counterclockwise")
+                            }
+                            .disabled(redo == nil || model.isTranscribing)
+                            .accessibilityIdentifier("redo-tangent")
+                            Button(role: .destructive) {
+                                dismissKeyboard()
+                                showsDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .accessibilityIdentifier("delete-tangent")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .accessibilityLabel("Options")
+                    .accessibilityIdentifier("tangent-options")
+                    .disabled(model.isDeleting)
+                }
+            }
             if isEditing {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
@@ -129,12 +148,31 @@ struct DailyTangentDetailsView: View {
                 }
             }
         }
-        .alert("Are you sure?", isPresented: $showsRedoConfirmation) {
+        .alert("Delete this Tangent?", isPresented: $showsDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task {
+                    if await model.deleteEntry() {
+                        isEditing = false
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("This permanently deletes this Tangent and its saved transcript or recording. Other Tangents will be kept.")
+        }
+        .alert("Couldn’t complete action", isPresented: Binding(
+            get: { model.actionError != nil },
+            set: { if !$0 { model.actionError = nil } }
+        )) {
+            Button("OK", role: .cancel) { model.actionError = nil }
+        } message: {
+            Text(model.actionError ?? "")
+        }
+        .alert("Re-do this Tangent?", isPresented: $showsRedoConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Overwrite", role: .destructive) {
-                if let day = model.entry?.day {
-                    redo?(day)
-                }
+                performRedo()
             }
         } message: {
             Text("This will overwrite only this recording. Other recordings for this day will be kept.")
@@ -352,11 +390,29 @@ struct DailyTangentDetailsView: View {
     }
 
     private func confirmOrRedo() {
-        guard let day = model.entry?.day else { return }
+        guard model.entry != nil else { return }
+        dismissKeyboard()
         if shouldConfirmRedo {
             showsRedoConfirmation = true
         } else {
-            redo?(day)
+            performRedo()
+        }
+    }
+
+    private var shareText: String {
+        guard var entry = model.entry else { return "" }
+        if isEditing, let summary = editableSummary { entry.summaryShort = summary }
+        return TangentShareText.make(entry: entry, transcript: isEditing ? draftTranscript : model.transcript)
+    }
+
+    private func performRedo() {
+        Task {
+            // Keep edits if the user opens recording and then cancels it.
+            if isEditing {
+                guard await model.saveEdits(summary: editableSummary, transcript: draftTranscript) else { return }
+                isEditing = false
+            }
+            if let day = model.entry?.day { redo?(day) }
         }
     }
 
@@ -366,7 +422,7 @@ struct DailyTangentDetailsView: View {
 
     private func finishEditing() async {
         dismissKeyboard()
-        await model.saveEdits(summary: editableSummary, transcript: draftTranscript)
+        guard await model.saveEdits(summary: editableSummary, transcript: draftTranscript) else { return }
         isEditing = false
         showsSummaryEditor = false
     }

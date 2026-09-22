@@ -36,6 +36,10 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     @Published private var streamingShortSummary = ""
     @Published private(set) var loadError: String?
 
+    @Published private(set) var isDeleting = false
+    @Published var actionError: String?
+    private var isDeleted = false
+
     private let noteStore: any NoteStore
     private let transcriber: (any Transcriber)?
     private let languageModel: (any DiaryLanguageModel)?
@@ -100,7 +104,9 @@ final class DailyTangentDetailsViewModel: ObservableObject {
 
     func load() async {
         do {
-            entry = try await noteStore.diaryEntry(id: diaryID)
+            let loaded = try await noteStore.diaryEntry(id: diaryID)
+            guard !isDeleted, !isDeleting else { return }
+            entry = loaded
             transcript = Self.storedTranscript(from: entry)
             loadError = entry == nil ? "This Tangent could not be found." : nil
         } catch {
@@ -144,7 +150,7 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     }
 
     private func transcribeFreshRecording(animate: Bool) async {
-        guard let transcriber,
+        guard !isDeleted, !isDeleting, let transcriber,
               let path = entry?.transcriptPath,
               !path.isEmpty
         else {
@@ -168,6 +174,7 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     private func reveal(_ fullText: String) async {
         var current = ""
         for character in fullText {
+            guard !isDeleted, !isDeleting else { return }
             current.append(character)
             if character.isWhitespace || current.count.isMultiple(of: 3) {
                 transcript = current
@@ -180,7 +187,7 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     /// Stores the transcript and points the entry at it. The summary stays
     /// empty until the model has written it.
     private func persist(_ transcript: String) async throws {
-        guard var entry = try await noteStore.diaryEntry(id: diaryID) else { return }
+        guard var entry = try await noteStore.diaryEntry(id: diaryID), !isDeleted, !isDeleting else { return }
         let oldPath = entry.transcriptPath
         entry.transcriptPath = try writeTranscriptFile(transcript, replacing: oldPath)
         try await noteStore.saveDiaryEntry(entry)
@@ -194,8 +201,9 @@ final class DailyTangentDetailsViewModel: ObservableObject {
 
     /// Writes a user edit of the visible summary and/or transcript. Empty
     /// summary text is stored as no summary, matching generation skip rules.
-    func saveEdits(summary: String?, transcript: String) async {
-        guard var entry else { return }
+    @discardableResult
+    func saveEdits(summary: String?, transcript: String) async -> Bool {
+        guard var entry, !isDeleted, !isDeleting else { return false }
         let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTranscript != (self.transcript ?? "") {
             do {
@@ -206,7 +214,8 @@ final class DailyTangentDetailsViewModel: ObservableObject {
                 self.transcript = trimmedTranscript.isEmpty ? nil : trimmedTranscript
             } catch {
                 loadError = "This transcript could not be saved."
-                return
+                actionError = loadError
+                return false
             }
         }
 
@@ -219,9 +228,53 @@ final class DailyTangentDetailsViewModel: ObservableObject {
             self.entry = entry
             if summary != nil { summaryState = .settled }
             loadError = nil
+            actionError = nil
+            return true
         } catch {
             loadError = "This Tangent could not be saved."
+            actionError = loadError
+            return false
         }
+    }
+
+    /// Delete the record first: a failed database save must leave its files intact.
+    /// Guard late transcription/generation callbacks so deletion cannot recreate it.
+    func deleteEntry() async -> Bool {
+        guard let entry, !isDeleted, !isDeleting else { return false }
+        isDeleting = true
+        defer { isDeleting = false }
+        do {
+            let others = try await noteStore.diaryEntries(profileID: nil).filter { $0.id != entry.id }
+            let protectedFiles = Set(others.flatMap { Self.files(for: $0) })
+            try await noteStore.deleteDiaryEntry(id: entry.id)
+            isDeleted = true
+            self.entry = nil
+            transcript = nil
+            streamingShortSummary = ""
+            summaryState = .settled
+            for file in Self.files(for: entry) where !protectedFiles.contains(file) {
+                try? FileManager.default.removeItem(at: file)
+            }
+            actionError = nil
+            return true
+        } catch {
+            actionError = "This Tangent could not be deleted. Please try again."
+            return false
+        }
+    }
+
+    private static func files(for entry: DiaryEntry) -> [URL] {
+        guard !entry.transcriptPath.isEmpty else { return [] }
+        let file = TranscriptFiles.url(for: entry.transcriptPath)
+        var files = [file]
+        if ["caf", "m4a", "wav"].contains(file.pathExtension.lowercased()) {
+            files.append(TranscriptFiles.checkpointURL(for: file))
+            files.append(file.appendingPathExtension("json"))
+        }
+        // Only remove files in our own documents, never an arbitrary legacy path.
+        let root = URL.documentsDirectory.resolvingSymlinksInPath().standardizedFileURL.path + "/"
+        return files.map { $0.resolvingSymlinksInPath().standardizedFileURL }
+            .filter { $0.path.hasPrefix(root) }
     }
 
     private func writeTranscriptFile(_ transcript: String, replacing path: String) throws -> String {
@@ -248,7 +301,7 @@ final class DailyTangentDetailsViewModel: ObservableObject {
     }
 
     private func generateSummary(profile: UserProfile, transcript: String) async {
-        guard let languageModel, let entry else { return }
+        guard !isDeleted, !isDeleting, let languageModel, let entry else { return }
 
         streamingShortSummary = ""
         summaryState = .waiting
@@ -258,20 +311,20 @@ final class DailyTangentDetailsViewModel: ObservableObject {
                 profile: profile,
                 onPartial: { [weak self] partial in
                     Task { @MainActor in
-                        guard let self, self.isGenerating else { return }
+                        guard let self, !self.isDeleted, !self.isDeleting, self.isGenerating else { return }
                         self.streamingShortSummary = partial
                     }
                 },
                 onStatus: { [weak self] status in
                     Task { @MainActor in
-                        guard let self, self.isGenerating else { return }
+                        guard let self, !self.isDeleted, !self.isDeleting, self.isGenerating else { return }
                         self.summaryState = status == .waiting ? .waiting : .generating
                     }
                 }
             )
 
             try Task.checkCancellation()
-            guard var updated = try await noteStore.diaryEntry(id: entry.id) else { return }
+            guard var updated = try await noteStore.diaryEntry(id: entry.id), !isDeleted, !isDeleting else { return }
             updated.summaryShort = short.text
             updated.promptText = short.promptText
             try await noteStore.saveDiaryEntry(updated)

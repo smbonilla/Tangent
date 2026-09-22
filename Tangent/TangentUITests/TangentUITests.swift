@@ -125,6 +125,57 @@ final class TangentUITests: XCTestCase {
     }
 
     @MainActor
+    func testTangentOptionsShareRedoAndDelete() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding", "--multiple-recordings"]
+        app.launch()
+        app.buttons["complete-onboarding"].tap()
+        let morning = app.buttons["diary-entry-11111111-1111-1111-1111-111111111111"]
+        let afternoon = app.buttons["diary-entry-22222222-2222-2222-2222-222222222222"]
+        XCTAssertTrue(morning.waitForExistence(timeout: 5))
+        morning.tap()
+        let options = app.buttons["tangent-options"]
+        XCTAssertTrue(options.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["redo-tangent"].exists)
+        options.tap()
+        XCTAssertTrue(app.buttons["share-tangent"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["redo-tangent"].exists)
+        XCTAssertTrue(app.buttons["delete-tangent"].exists)
+        let menu = XCTAttachment(screenshot: app.screenshot())
+        menu.name = "Tangent Options menu"
+        menu.lifetime = .keepAlways
+        add(menu)
+        app.buttons["share-tangent"].tap()
+        XCTAssertTrue(app.cells["Copy"].waitForExistence(timeout: 5))
+        let share = XCTAttachment(screenshot: app.screenshot())
+        share.name = "Plain text sharing"
+        share.lifetime = .keepAlways
+        add(share)
+        app.cells["Copy"].tap()
+        options.tap()
+        app.buttons["redo-tangent"].tap()
+        XCTAssertTrue(app.alerts["Re-do this Tangent?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Cancel"].tap()
+        options.tap()
+        app.buttons["delete-tangent"].tap()
+        XCTAssertTrue(app.alerts["Delete this Tangent?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(options.exists)
+        options.tap()
+        app.buttons["delete-tangent"].tap()
+        app.alerts.buttons["Delete"].tap()
+        XCTAssertTrue(afternoon.waitForExistence(timeout: 5))
+        XCTAssertFalse(morning.exists)
+        afternoon.tap()
+        app.buttons["tangent-options"].tap()
+        app.buttons["redo-tangent"].tap()
+        app.alerts.buttons["Overwrite"].tap()
+        XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 5))
+        app.buttons["diary-home-logo"].tap()
+        XCTAssertTrue(afternoon.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testDiaryNavigation() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-onboarding"]
