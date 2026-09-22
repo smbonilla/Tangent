@@ -55,7 +55,7 @@ struct OptionalAITests {
         #expect(try await store.diaryEntry(id: entry.id)?.summaryShort == "")
         #expect(await languageModel.calls == 0)
         #expect(catalog.downloads == 1)
-        #expect(DiaryHomeViewModel.transcriptPreview(at: path) == "I went for a walk. Then I drew a tree...")
+        #expect(DiaryHomeViewModel.transcriptPreview(at: path) == "I went for a walk. Then I drew a tree.")
         #expect(DiaryHomeViewModel.transcriptPreview(at: "/missing.txt") == "Transcript not available")
 
         preferences.aiEnabled = true

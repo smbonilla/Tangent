@@ -62,13 +62,28 @@ final class DiaryHomeViewModel: ObservableObject {
         }
     }
 
+    /// One short sentence should fit; this only clips a model that ignored the prompt.
+    static let maxSummaryPreviewWords = 48
+    /// AI-off cards share this length unless the recording was shorter.
+    static let maxTranscriptPreviewWords = 36
+    static let maxPreviewLines = 10
+
     nonisolated static func transcriptPreview(at path: String) -> String {
         guard let transcript = DailyTangentDetailsViewModel.loadTranscript(at: path) else {
             return "Transcript not available"
         }
-        let text = transcript.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return clippedPreview(transcript, maxWords: maxTranscriptPreviewWords)
+    }
+
+    nonisolated static func clippedPreview(_ text: String, maxWords: Int) -> String {
+        let words = text.split(whereSeparator: \.isWhitespace)
+        guard !words.isEmpty else { return "" }
+        if words.count <= maxWords {
+            return words.joined(separator: " ")
+        }
+        let clipped = words.prefix(maxWords).joined(separator: " ")
         let trailingCharacters = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "."))
-        return String(text.prefix(140)).trimmingCharacters(in: trailingCharacters) + "..."
+        return clipped.trimmingCharacters(in: trailingCharacters) + "..."
     }
 
     nonisolated static func makeTimeline(

@@ -157,6 +157,34 @@ struct TangentTests {
     }
 
     @Test
+    func diaryTimelinePreviewKeepsShortTextAndClipsRunaways() {
+        #expect(DiaryHomeViewModel.clippedPreview("I finished a sketch.", maxWords: 8) == "I finished a sketch.")
+        #expect(
+            DiaryHomeViewModel.clippedPreview(
+                "I walked, cooked, read, wrote, and then I sat with the idea a little longer than I meant to.",
+                maxWords: 8
+            ) == "I walked, cooked, read, wrote, and then I..."
+        )
+        #expect(DiaryHomeViewModel.clippedPreview("   ", maxWords: 8).isEmpty)
+
+        let shortWords = Array(repeating: "word", count: DiaryHomeViewModel.maxTranscriptPreviewWords)
+        #expect(
+            DiaryHomeViewModel.clippedPreview(
+                shortWords.joined(separator: " "),
+                maxWords: DiaryHomeViewModel.maxTranscriptPreviewWords
+            ) == shortWords.joined(separator: " ")
+        )
+
+        let longWords = Array(repeating: "word", count: DiaryHomeViewModel.maxTranscriptPreviewWords + 5)
+        let clipped = DiaryHomeViewModel.clippedPreview(
+            longWords.joined(separator: " "),
+            maxWords: DiaryHomeViewModel.maxTranscriptPreviewWords
+        )
+        #expect(clipped.hasSuffix("..."))
+        #expect(clipped.split(whereSeparator: \.isWhitespace).count == DiaryHomeViewModel.maxTranscriptPreviewWords)
+    }
+
+    @Test
     func diaryXMLExportIncludesAllFieldsAndEscapesText() throws {
         let profileID = UUID()
         let questionID = UUID()

@@ -133,18 +133,19 @@ enum DemoDataSeeder {
         #if DEBUG
         guard !ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
         let dummyEntries = try modelContext.fetch(FetchDescriptor<DiaryEntryRecord>())
-            .filter { $0.promptText == dummyPastDayPrompt }
-        guard !dummyEntries.isEmpty else { return }
-
+            .filter { $0.promptText == dummyPastDayPrompt || $0.promptText == layoutPreviewPrompt }
         for entry in dummyEntries {
             if !entry.transcriptPath.isEmpty {
                 try? FileManager.default.removeItem(at: TranscriptFiles.url(for: entry.transcriptPath))
             }
             modelContext.delete(entry)
         }
-        let dummyDirectory = URL.applicationSupportDirectory
-            .appending(path: "DummyTranscripts", directoryHint: .isDirectory)
-        try? FileManager.default.removeItem(at: dummyDirectory)
+        for directoryName in ["DummyTranscripts", "LayoutPreviewTranscripts"] {
+            let dummyDirectory = URL.applicationSupportDirectory
+                .appending(path: directoryName, directoryHint: .isDirectory)
+            try? FileManager.default.removeItem(at: dummyDirectory)
+        }
+        guard !dummyEntries.isEmpty else { return }
         try modelContext.save()
         #endif
     }
@@ -152,6 +153,7 @@ enum DemoDataSeeder {
     private static let demoPrompt = "Demo diary prompt for Taylor"
     private static let demoInsightPrompt = "Demo insight prompt for Taylor"
     private static let dummyPastDayPrompt = "DEBUG dummy past day"
+    private static let layoutPreviewPrompt = "DEBUG timeline layout preview"
 
     private static func demoTranscriptPath(
         daysAgo: Int,

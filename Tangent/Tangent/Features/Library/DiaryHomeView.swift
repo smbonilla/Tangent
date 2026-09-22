@@ -225,17 +225,26 @@ struct DiaryHomeView: View {
         let placeholder = model.needsModel
             ? "Download your preferred model in Settings to generate a summary."
             : "Summary not written yet"
-        let summary = preferences.aiEnabled
-            ? (hasSummary ? entry.summaryShort : placeholder)
-            : (model.transcriptPreviews[entry.id] ?? "Transcript not available")
+        let summary: String
+        if preferences.aiEnabled {
+            summary = hasSummary
+                ? DiaryHomeViewModel.clippedPreview(
+                    entry.summaryShort,
+                    maxWords: DiaryHomeViewModel.maxSummaryPreviewWords
+                )
+                : placeholder
+        } else {
+            summary = model.transcriptPreviews[entry.id] ?? "Transcript not available"
+        }
 
         return dayCard(on: date, chrome: .filled, action: { openEntry(entry.id) }) {
             Text(summary)
                 .font(.system(.callout, design: .serif))
                 .foregroundStyle(Color.tangentInk.opacity(!preferences.aiEnabled || hasSummary ? 1 : 0.5))
                 .multilineTextAlignment(.center)
-                .lineLimit(3)
+                .lineLimit(DiaryHomeViewModel.maxPreviewLines)
                 .truncationMode(.tail)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
         }
         .accessibilityLabel("\(fullDate(date)). \(summary)")
@@ -265,17 +274,18 @@ struct DiaryHomeView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         Button(action: action ?? {}) {
-            HStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 dateLabel(for: date, chrome: chrome)
                     .frame(width: 38)
 
-                Divider()
-                    .overlay(chrome.dividerColor)
-                    .frame(height: 46)
+                Rectangle()
+                    .fill(chrome.dividerColor)
+                    .frame(width: 1)
 
                 content()
                     .foregroundStyle(chrome.contentColor)
             }
+            .frame(minHeight: 46)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
