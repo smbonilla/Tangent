@@ -156,12 +156,12 @@ final class TangentUITests: XCTestCase {
         app.buttons["redo-tangent"].tap()
         XCTAssertTrue(app.alerts["Re-do this Tangent?"].waitForExistence(timeout: 3))
         app.alerts.buttons["Cancel"].tap()
-        options.tap()
+        if !app.buttons["delete-tangent"].isHittable { options.tap() }
         app.buttons["delete-tangent"].tap()
         XCTAssertTrue(app.alerts["Delete this Tangent?"].waitForExistence(timeout: 3))
         app.alerts.buttons["Cancel"].tap()
         XCTAssertTrue(options.exists)
-        options.tap()
+        if !app.buttons["delete-tangent"].isHittable { options.tap() }
         app.buttons["delete-tangent"].tap()
         app.alerts.buttons["Delete"].tap()
         XCTAssertTrue(afternoon.waitForExistence(timeout: 5))

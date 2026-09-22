@@ -131,7 +131,6 @@ struct DailyTangentDetailsView: View {
                             .disabled(model.isTranscribing || model.isGenerating)
                             .accessibilityIdentifier("share-tangent")
                             Button {
-                                showsOptions = false
                                 confirmOrRedo()
                             } label: {
                                 optionLabel("Re-do", systemImage: "arrow.counterclockwise", color: .gray)
@@ -139,7 +138,6 @@ struct DailyTangentDetailsView: View {
                             .disabled(redo == nil || model.isTranscribing)
                             .accessibilityIdentifier("redo-tangent")
                             Button(role: .destructive) {
-                                showsOptions = false
                                 showsDeleteConfirmation = true
                             } label: {
                                 optionLabel("Delete", systemImage: "trash", color: .red)
@@ -150,6 +148,30 @@ struct DailyTangentDetailsView: View {
                         .padding(8)
                         .frame(width: 240)
                         .presentationCompactAdaptation(.popover)
+                        .alert("Delete this Tangent?", isPresented: $showsDeleteConfirmation) {
+                            Button("Cancel", role: .cancel) {}
+                            Button("Delete", role: .destructive) {
+                                Task {
+                                    if await model.deleteEntry() {
+                                        isEditing = false
+                                        showsOptions = false
+                                        dismiss()
+                                    } else {
+                                        showsOptions = false
+                                    }
+                                }
+                            }
+                        } message: {
+                            Text("This permanently deletes this Tangent and its saved transcript.")
+                        }
+                        .alert("Re-do this Tangent?", isPresented: $showsRedoConfirmation) {
+                            Button("Cancel", role: .cancel) {}
+                            Button("Overwrite", role: .destructive) {
+                                performRedo()
+                            }
+                        } message: {
+                            Text("This will overwrite only this recording. Other recordings for this day will be kept.")
+                        }
                     }
                 }
             }
@@ -162,19 +184,6 @@ struct DailyTangentDetailsView: View {
                 }
             }
         }
-        .alert("Delete this Tangent?", isPresented: $showsDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                Task {
-                    if await model.deleteEntry() {
-                        isEditing = false
-                        dismiss()
-                    }
-                }
-            }
-        } message: {
-            Text("This permanently deletes this Tangent and its saved transcript or recording. Other Tangents will be kept.")
-        }
         .alert("Couldn’t complete action", isPresented: Binding(
             get: { model.actionError != nil },
             set: { if !$0 { model.actionError = nil } }
@@ -182,14 +191,6 @@ struct DailyTangentDetailsView: View {
             Button("OK", role: .cancel) { model.actionError = nil }
         } message: {
             Text(model.actionError ?? "")
-        }
-        .alert("Re-do this Tangent?", isPresented: $showsRedoConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Overwrite", role: .destructive) {
-                performRedo()
-            }
-        } message: {
-            Text("This will overwrite only this recording. Other recordings for this day will be kept.")
         }
         .task {
             await model.start()
@@ -440,7 +441,10 @@ struct DailyTangentDetailsView: View {
                 guard await model.saveEdits(summary: editableSummary, transcript: draftTranscript) else { return }
                 isEditing = false
             }
-            if let day = model.entry?.day { redo?(day) }
+            if let day = model.entry?.day {
+                showsOptions = false
+                redo?(day)
+            }
         }
     }
 
