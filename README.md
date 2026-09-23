@@ -9,9 +9,9 @@ Record your thoughts, read them back, and choose if AI helps you reflect or not 
 
 ## Try Tangent
 
-[Public beta on TestFlight](https://testflight.apple.com/join/ZTfE11xN).
+[Public beta on TestFlight](https://testflight.apple.com/join/ZTfE11xN)
 
-Read [a blog post about Tangent](https://medium.com/@smbonilla/we-didnt-win-a-hackathon-but-we-re-releasing-the-app-we-built-anyway-11caac402001).
+Read [a blog post about Tangent](https://medium.com/@smbonilla/we-didnt-win-a-hackathon-but-we-re-releasing-the-app-we-built-anyway-11caac402001)
 
 ## What it does
 
