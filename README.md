@@ -18,7 +18,7 @@ Read [a blog post about Tangent](https://medium.com/@smbonilla/we-didnt-win-a-ha
 - Records voice entries and transcribes them on your device.
 - Optionally generates one short summary per entry.
 - Finds insights across your short summaries, guided by your interests and concerns.
-- Lets you choose from small Qwen, Gemma, and MedGemma models in Settings.
+- Current implementation uses the Qwen3 1.7B model, but we plan to let users choose from other Qwen variants, Gemma, and MedGemma models in Settings.
 
 AI starts off. Without it, your diary contains just your transcripts. Choose and download a model during onboarding to enable **AI summaries**, or continue without AI. You can download, switch, and remove models in Settings later. AI stays off until the selected model is downloaded, and removing the active model turns AI off.
 
