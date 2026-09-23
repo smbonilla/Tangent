@@ -7,6 +7,12 @@ Created by us, for you, for no money. This is not a business.
 Tangent is a private voice diary for your interests, concerns, and everyday ideas.
 Record your thoughts, read them back, and choose if AI helps you reflect or not we don't mind. up to you.
 
+## Try Tangent
+
+Try out Tangent: [public beta on TestFlight](https://testflight.apple.com/join/ZTfE11xN).
+
+Read [a blog post about Tangent](https://medium.com/@smbonilla/we-didnt-win-a-hackathon-but-we-re-releasing-the-app-we-built-anyway-11caac402001).
+
 ## What it does
 
 - Records voice entries and transcribes them on your device.
