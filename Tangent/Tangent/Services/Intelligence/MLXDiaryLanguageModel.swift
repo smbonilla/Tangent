@@ -105,7 +105,7 @@ actor MLXDiaryLanguageModel: DiaryLanguageModel {
             prompt: prompt,
             in: container,
             model: model,
-            maxTokens: 400,
+            maxTokens: ModelResourceGuard.maximumOutputTokens,
             label: "insights · \(model.displayName)",
             onPartial: onPartial
         )

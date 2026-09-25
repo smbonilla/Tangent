@@ -5,6 +5,7 @@ import os
 struct ModelResourceGuard: Sendable {
     static let reserve: Int64 = 256 * 1_024 * 1_024
     static let maximumInputTokens = 4_096
+    static let maximumOutputTokens = 400
     var availableMemory: @Sendable () -> Int64 = { Int64(os_proc_available_memory()) }
     var availableStorage: @Sendable () throws -> Int64 = {
         let values = try ModelStorage.directory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
@@ -27,18 +28,41 @@ struct ModelResourceGuard: Sendable {
         guard available >= required else {
             throw ModelResourceError.storage(required: required, available: max(0, available))
         }
+        // Check before any network work. Enough disk space does not mean the
+        // app has enough memory to load the weights and generate a response.
+        let memoryRequired = Self.runBudget(weightBytes: model.approximateDownloadBytes)
+        let memoryAvailable = max(0, availableMemory())
+        guard memoryAvailable >= memoryRequired else {
+            throw ModelResourceError.downloadMemory(required: memoryRequired, available: memoryAvailable)
+        }
+    }
+
+    static func loadBudget(weightBytes: Int64) -> Int64 {
+        max(0, weightBytes) * 2 + reserve * 3
+    }
+
+    static func generationBudget(inputTokens: Int, outputTokens: Int) -> Int64 {
+        let tokens = Int64(max(0, inputTokens) + max(0, outputTokens))
+        return reserve * 3 + tokens * 160 * 1_024
+    }
+
+    static func runBudget(weightBytes: Int64) -> Int64 {
+        // Loading and generation are sequential. During generation the weights
+        // remain resident alongside KV state and the prefill workspace.
+        max(loadBudget(weightBytes: weightBytes), max(0, weightBytes) + generationBudget(
+            inputTokens: maximumInputTokens, outputTokens: maximumOutputTokens
+        ))
     }
 
     func checkLoad(weightBytes: Int64) throws {
         // Loading can temporarily hold both mapped weights and GPU allocations.
-        try checkMemory(required: max(0, weightBytes) * 2 + Self.reserve * 3)
+        try checkMemory(required: Self.loadBudget(weightBytes: weightBytes))
     }
 
     func checkGeneration(inputTokens: Int, outputTokens: Int) throws {
         guard inputTokens <= Self.maximumInputTokens else { throw ModelResourceError.inputTooLong }
         // Budget KV state and prefill workspace separately from resident weights.
-        let tokens = Int64(max(0, inputTokens) + max(0, outputTokens))
-        try checkMemory(required: Self.reserve * 3 + tokens * 160 * 1_024)
+        try checkMemory(required: Self.generationBudget(inputTokens: inputTokens, outputTokens: outputTokens))
     }
 
     func checkMemory(required: Int64 = Self.reserve) throws {
@@ -81,6 +105,7 @@ struct ModelResourceGuard: Sendable {
 enum ModelResourceError: LocalizedError, Equatable {
     case storage(required: Int64, available: Int64)
     case memory(required: Int64, available: Int64)
+    case downloadMemory(required: Int64, available: Int64)
     case memoryPressure
     case capacityUnavailable
     case inputTooLong
@@ -92,6 +117,8 @@ enum ModelResourceError: LocalizedError, Equatable {
             "Not enough storage. This download needs about \(Self.size(required)) free; \(Self.size(available)) is available. Free up space or choose a smaller model in Settings."
         case .memory(let required, let available):
             "Not enough available memory for this model. About \(Self.size(required)) is needed; \(Self.size(available)) is available. Try again later or choose a smaller model in Settings. Your diary is unchanged."
+        case .downloadMemory:
+            "There is not enough RAM on this phone to run the model. You can still record and read your diary without AI summaries."
         case .memoryPressure:
             "Your device is low on memory, so the model was stopped. Try again later or choose a smaller model in Settings. Your diary is unchanged."
         case .capacityUnavailable:

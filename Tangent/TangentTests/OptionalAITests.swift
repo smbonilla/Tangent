@@ -103,6 +103,13 @@ struct OptionalAITests {
         #expect(!preferences.aiEnabled)
         #expect(!model.selectedModelIsReady)
 
+        let memoryError = ModelResourceError.downloadMemory(required: 2_800_000_000, available: 2_270_000_000)
+        catalog.downloadError = memoryError
+        await model.download(.gemma3_1B)
+        #expect(model.modelStates[.gemma3_1B] == .failed(message: memoryError.localizedDescription))
+        #expect(!preferences.aiEnabled)
+        #expect(!model.selectedModelIsReady)
+
         catalog.downloadError = nil
         await model.download(.gemma3_1B)
         #expect(model.selectedModelIsReady)
@@ -208,7 +215,7 @@ struct ModelResourceGuardTests {
     func downloadCapacityIncludesTemporaryFilesAndOtherDownloads() throws {
         let model = SummaryModelID.qwen3_0_6B
         let budget = ModelResourceGuard.downloadBudget(for: model)
-        let guardWithSpace = ModelResourceGuard(availableStorage: { budget })
+        let guardWithSpace = ModelResourceGuard(availableMemory: { 10_000_000_000 }, availableStorage: { budget })
         try guardWithSpace.checkDownload(model)
         #expect(throws: ModelResourceError.storage(required: budget + 1, available: budget)) {
             try guardWithSpace.checkDownload(model, reservedBytes: 1)
@@ -216,6 +223,31 @@ struct ModelResourceGuardTests {
         #expect(budget > model.approximateDownloadBytes * 2)
         let unknown = ModelResourceGuard(availableStorage: { throw CocoaError(.fileReadUnknown) })
         #expect(throws: ModelResourceError.capacityUnavailable) { try unknown.checkDownload(model) }
+    }
+
+    @Test(arguments: SummaryModelID.allCases)
+    func downloadRequiresMemoryToLoadAndGenerate(model: SummaryModelID) throws {
+        let required = ModelResourceGuard.runBudget(weightBytes: model.approximateDownloadBytes)
+        let storage = ModelResourceGuard.downloadBudget(for: model)
+        let insufficient = ModelResourceGuard(availableMemory: { required - 1 }, availableStorage: { storage })
+        #expect(throws: ModelResourceError.downloadMemory(required: required, available: required - 1)) {
+            try insufficient.checkDownload(model)
+        }
+        try ModelResourceGuard(availableMemory: { required }, availableStorage: { storage }).checkDownload(model)
+        #expect(required >= ModelResourceGuard.loadBudget(weightBytes: model.approximateDownloadBytes))
+        #expect(required >= model.approximateDownloadBytes + ModelResourceGuard.generationBudget(inputTokens: 4_096, outputTokens: 400))
+    }
+
+    @Test
+    func downloadRejectsReportedPhoneMemoryDespiteAmpleStorage() {
+        let model = SummaryModelID.qwen3_1_7B
+        let available: Int64 = 2_270_000_000
+        let resources = ModelResourceGuard(availableMemory: { available }, availableStorage: { 20_000_000_000 })
+        #expect(throws: ModelResourceError.downloadMemory(
+            required: ModelResourceGuard.runBudget(weightBytes: model.approximateDownloadBytes), available: available
+        )) {
+            try resources.checkDownload(model)
+        }
     }
 
     @Test

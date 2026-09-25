@@ -116,7 +116,14 @@ MLX to implement a workflow. Add tests for persistence changes and feature
 behaviour in the existing test targets.
 
 `ModelResourceGuard` checks user-initiated downloads using Apple's volume capacity
-API and declares its disk-space reason in `PrivacyInfo.xcprivacy`. Loading reserves
+API and declares its disk-space reason in `PrivacyInfo.xcprivacy`. Before any download
+starts it also checks current app-available memory against the larger of the loading
+budget and resident weights plus generation workspace for 4,096 input / 400 output
+tokens. Insufficient memory blocks the transfer in both onboarding and Settings;
+the user can continue without AI. Download sizes are estimates, and available memory
+can change, so loading and generation still check again. The Settings checkmark
+indicates model selection, not a guarantee of runtime capacity.
+Loading reserves
 twice the larger of actual/estimated weight bytes plus 768 MiB. Generation reserves
 768 MiB plus 160 KiB per input/output token, with a 4,096-input-token limit and
 128-token prefill batches. These are conservative estimates, not measured guarantees.

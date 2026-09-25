@@ -39,8 +39,17 @@ struct TangentApp: App {
             let existingInstall = !isUITesting && profileCount > 0
             let preferences = AppPreferences(defaults: defaults, existingInstall: existingInstall)
             _preferences = StateObject(wrappedValue: preferences)
+            var modelResources = ModelResourceGuard()
+            #if DEBUG
+            if isUITesting && ProcessInfo.processInfo.arguments.contains("--low-model-memory") {
+                modelResources = ModelResourceGuard(
+                    availableMemory: { 2_270_000_000 }, availableStorage: { 20_000_000_000 }
+                )
+            }
+            #endif
             let aiService = OptionalAIService(
-                preferences: preferences, languageModel: Self.makeLanguageModel(), catalog: MLXModelCatalog()
+                preferences: preferences, languageModel: Self.makeLanguageModel(),
+                catalog: MLXModelCatalog(resources: modelResources)
             )
             self.modelContainer = modelContainer
             try ProfileSeeder.seedIfNeeded(

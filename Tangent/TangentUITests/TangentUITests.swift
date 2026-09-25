@@ -10,6 +10,55 @@ import XCTest
 final class TangentUITests: XCTestCase {
 
     @MainActor
+    func testModelDownloadChecksRunMemoryBeforeStarting() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding", "--low-model-memory"]
+        app.launch()
+        let ai = app.switches["ai-enabled"]
+        XCTAssertTrue(ai.waitForExistence(timeout: 5))
+        ai.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        let download = app.buttons["Download · 1 GB"]
+        for _ in 0..<5 where !download.isHittable { app.swipeUp() }
+        XCTAssertTrue(download.isHittable)
+        download.tap()
+        let warning = "There is not enough RAM on this phone to run the model. You can still record and read your diary without AI summaries."
+        let failure = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "There is not enough RAM")).firstMatch
+        XCTAssertTrue(failure.waitForExistence(timeout: 3))
+        XCTAssertEqual(failure.label, warning)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS %@", "We recommend iPhones with 6 GB of RAM."
+        )).firstMatch.exists)
+        XCTAssertFalse(app.buttons["Cancel"].exists)
+        XCTAssertFalse(app.buttons["Remove"].exists)
+        XCTAssertEqual(app.buttons["model-qwen3-1.7b-4bit"].value as? String, "Selected")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Download blocked before transfer when run memory is insufficient"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        let continueWithoutAI = app.buttons["continue-without-ai"]
+        for _ in 0..<5 where !continueWithoutAI.isHittable { app.swipeDown() }
+        continueWithoutAI.tap()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 3))
+        app.buttons["Settings"].tap()
+        for _ in 0..<5 where !ai.isHittable { app.swipeUp() }
+        XCTAssertEqual(ai.value as? String, "0")
+        ai.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        for _ in 0..<5 where !download.isHittable { app.swipeUp() }
+        download.tap()
+        XCTAssertTrue(failure.waitForExistence(timeout: 3))
+        for _ in 0..<3 where !failure.isHittable || failure.frame.maxY > app.frame.maxY - 80 {
+            app.swipeUp()
+        }
+        // Keep the shared requirements note and the model warning together in the capture.
+        app.swipeDown(velocity: .slow)
+        XCTAssertFalse(app.buttons["Remove"].exists)
+        let settings = XCTAttachment(screenshot: app.screenshot())
+        settings.name = "Settings with storage available but insufficient run memory"
+        settings.lifetime = .keepAlways
+        add(settings)
+    }
+
+    @MainActor
     func testEmptyDiaryPromptStaysCompactAcrossLaunches() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-onboarding"]
