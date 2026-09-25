@@ -286,6 +286,9 @@ struct DiaryHomeView: View {
                     .foregroundStyle(chrome.contentColor)
             }
             .frame(minHeight: 46)
+            // Size the row from its text, not the flexible vertical divider.
+            // This keeps empty prompts compact while allowing longer previews.
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)

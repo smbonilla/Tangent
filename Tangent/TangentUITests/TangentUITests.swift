@@ -9,6 +9,70 @@ import XCTest
 
 final class TangentUITests: XCTestCase {
 
+    @MainActor
+    func testEmptyDiaryPromptStaysCompactAcrossLaunches() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--reset-onboarding"]
+        app.launch()
+        app.buttons["complete-onboarding"].tap()
+
+        for launch in 1...3 {
+            let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Record today’s Tangent")).firstMatch
+            XCTAssertTrue(prompt.waitForExistence(timeout: 5))
+            let frame = prompt.frame
+            XCTAssertGreaterThan(frame.height, 44)
+            XCTAssertLessThan(frame.height, 100, "Empty prompt must not fill the screen")
+            XCTAssertLessThan(frame.width, 320)
+            XCTAssertEqual(frame.midX, app.frame.midX, accuracy: 5)
+            XCTAssertEqual(frame.midY, app.frame.midY, accuracy: app.frame.height * 0.15)
+            XCTAssertTrue(prompt.isHittable)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Compact empty diary launch \(launch)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+
+            prompt.tap()
+            XCTAssertTrue(app.buttons["Start recording"].waitForExistence(timeout: 3))
+            app.terminate()
+            if launch < 3 {
+                app.launchArguments = ["--ui-testing"]
+                app.launch()
+            }
+        }
+    }
+
+    @MainActor
+    func testDiaryLayoutWithGapsAndFullHistory() throws {
+        let app = XCUIApplication()
+        for recentOnly in [true, false] {
+            app.launchArguments = ["--ui-testing", "--reset-onboarding", "--demo-data"]
+            if recentOnly { app.launchArguments.append("--recent-demo-data") }
+            app.launch()
+            app.buttons["complete-onboarding"].tap()
+            let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Record today’s Tangent")).firstMatch
+            XCTAssertTrue(prompt.waitForExistence(timeout: 5))
+            XCTAssertLessThan(prompt.frame.height, 100)
+            let emptyDay = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Fill in Tangent")).firstMatch
+            XCTAssertTrue(emptyDay.exists)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = recentOnly ? "A few entries with empty days" : "Full diary latest entries"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+
+            if !recentOnly {
+                app.swipeDown()
+                let history = XCTAttachment(screenshot: app.screenshot())
+                history.name = "Full page of diary history"
+                history.lifetime = .keepAlways
+                add(history)
+            }
+            let entry = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Hi. I wanted to check in about today.")).firstMatch
+            XCTAssertTrue(entry.exists)
+            XCTAssertGreaterThan(entry.frame.height, 100, "Long transcript previews must retain their content-driven height")
+            app.terminate()
+        }
+    }
+
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
 

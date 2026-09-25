@@ -26,7 +26,7 @@ enum DemoDataSeeder {
     #endif
 
     @MainActor
-    static func seedIfNeeded(in modelContext: ModelContext) throws {
+    static func seedIfNeeded(in modelContext: ModelContext, recentOnly: Bool = false) throws {
         #if DEBUG
         // The user is seeded in every build by `ProfileSeeder`; this only
         // adds demo history on top of them.
@@ -69,7 +69,7 @@ enum DemoDataSeeder {
                 (2, "I chose one task to focus on tomorrow instead of a long list."),
             ]
 
-            for example in examples {
+            for example in examples where !recentOnly || example.daysAgo <= 3 {
                 guard let day = calendar.date(
                     byAdding: .day,
                     value: -example.daysAgo,

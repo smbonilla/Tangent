@@ -51,7 +51,10 @@ struct TangentApp: App {
             )
             #if DEBUG
             if isUITesting && ProcessInfo.processInfo.arguments.contains("--demo-data") {
-                try DemoDataSeeder.seedIfNeeded(in: modelContainer.mainContext)
+                try DemoDataSeeder.seedIfNeeded(
+                    in: modelContainer.mainContext,
+                    recentOnly: ProcessInfo.processInfo.arguments.contains("--recent-demo-data")
+                )
             }
             if isUITesting && ProcessInfo.processInfo.arguments.contains("--multiple-recordings") {
                 try DemoDataSeeder.seedMultipleRecordingsForUITesting(in: modelContainer.mainContext)
